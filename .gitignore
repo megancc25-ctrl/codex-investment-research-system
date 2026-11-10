@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+*.private.json
+portfolio.private.json
+**/Local Portfolio/
+**/Obsidian/
+nq_sentinel_pro/data/
+nq_sentinel_pro/reports/

@@ -1,0 +1,37 @@
+name: NQ Sentinel public market report
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 23:30 UTC Mon-Fri, safely after standard and summer-time US close.
+    - cron: '30 23 * * 1-5'
+
+permissions:
+  contents: read
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: nq_sentinel_pro
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install public-market data adapter
+        run: python -m pip install -r requirements.txt
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Download and analyze unverified public historical prices
+        run: python run_daily.py --download --out reports
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: nq-sentinel-market-report
+          path: |
+            nq_sentinel_pro/reports/*.json
+            nq_sentinel_pro/reports/*.md
+          retention-days: 90
