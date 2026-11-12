@@ -6,6 +6,7 @@ import statistics
 from datetime import datetime, timezone
 from pathlib import Path
 from .core import evaluate, drawdown
+from .risk_v2 import technical_observations, score_v2
 
 TICKERS = {
     "NDX":"^NDX", "SOX":"^SOX", "QQQ":"QQQ",
@@ -138,7 +139,9 @@ def backtest(bars, commission_bps=10, slippage_bps=5, holdout_fraction=0.3):
 def make_report(bars, results, out):
     d=results["last_market_date"]
     sig=signal(bars,d)
+    v2 = score_v2(technical_observations(sig, d))
     report={"market_date":d,"generated_utc":datetime.now(timezone.utc).isoformat(),
+            "risk_v2":v2,
             "data_quality":"UNVERIFIED_VENDOR_PROXY",
             "signal":sig,"last_closes":{s:bars[s][d]["close"] for s in REQUIRED},
             "holdout_start":results["holdout_start"],"metrics":results["metrics"],
@@ -148,6 +151,9 @@ def make_report(bars, results, out):
     target.mkdir(parents=True,exist_ok=True)
     (target/(d+".json")).write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding="utf-8")
     lines=[f"# NQ-Sentinel Pro market report | {d}","",
+           "## V2 six-module risk score: " + (str(v2["score"]) if v2["score"] is not None else "N/A"),
+           f"Status: {v2['status']}; verified coverage: {v2['verified_coverage_pct']}%; candidate weights UNVALIDATED.",
+           "Missing modules are not zero. Technical proxies are not independently verified.", "",
            "> Research-only, unverified third-party historical price proxy. Not real-time.",
            f"> Risk level {sig['level']} and model risk weight {sig['model_risk_weight']:.0%} are **unvalidated candidate parameters**, not individual portfolio instructions.","",
            "## Last vendor closes",
