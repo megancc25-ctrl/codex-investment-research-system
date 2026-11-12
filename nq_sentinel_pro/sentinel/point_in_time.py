@@ -23,10 +23,9 @@ def validate_record(record, decision_at):
         if isinstance(record["value"], bool) or not isinstance(record["value"], (int, float)) or not math.isfinite(record["value"]):
             raise ValueError("Nonfinite numeric value")
         date.fromisoformat(record["observation_date"])
-        published, retrieved, cutoff = (iso_utc(record[k]) for k in
-                                         ("published_at", "retrieved_at", "decision_at")) if False else (
-                                             iso_utc(record["published_at"]),
-                                             iso_utc(record["retrieved_at"]), iso_utc(decision_at))
+        published = iso_utc(record["published_at"])
+        retrieved = iso_utc(record["retrieved_at"])
+        cutoff = iso_utc(decision_at)
         if published > retrieved:
             return {"usable": False, "reason": "PUBLICATION_AFTER_RETRIEVAL"}
         if published > cutoff:
