@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from .core import evaluate, drawdown
 from .risk_v2 import technical_observations, score_v2
+from .official_data import official_module_observations
 
 TICKERS = {
     "NDX":"^NDX", "SOX":"^SOX", "QQQ":"QQQ",
@@ -136,12 +137,16 @@ def backtest(bars, commission_bps=10, slippage_bps=5, holdout_fraction=0.3):
                            "price_source":"unverified Yahoo vendor proxy; not directly tradable indices",
                            "commission_bps":commission_bps,"slippage_bps":slippage_bps}}
 
-def make_report(bars, results, out):
+def make_report(bars, results, out, official_snapshot=None):
     d=results["last_market_date"]
     sig=signal(bars,d)
-    v2 = score_v2(technical_observations(sig, d))
+    modules = technical_observations(sig, d)
+    if official_snapshot is not None:
+        modules.update(official_module_observations(official_snapshot))
+    v2 = score_v2(modules)
     report={"market_date":d,"generated_utc":datetime.now(timezone.utc).isoformat(),
             "risk_v2":v2,
+            "official_data": official_snapshot,
             "data_quality":"UNVERIFIED_VENDOR_PROXY",
             "signal":sig,"last_closes":{s:bars[s][d]["close"] for s in REQUIRED},
             "holdout_start":results["holdout_start"],"metrics":results["metrics"],
