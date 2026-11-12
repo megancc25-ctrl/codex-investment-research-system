@@ -24,7 +24,11 @@ jobs:
           python-version: '3.11'
       - name: Offline deterministic tests
         run: python -m unittest discover -s tests -v
+      - name: Diagnose official FRED endpoints
+        run: python -m sentinel.fred_network_diagnostics
       - name: Real official FRED download and factor generation
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python -m sentinel.fred_credit_pipeline --out reports/fred_credit
       - name: Upload raw official CSV, factor CSV and audit manifest
         if: always()
