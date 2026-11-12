@@ -27,7 +27,7 @@ def expanding_percentile(history, current, minimum=60):
         return None
     return 100.0 * sum(x <= current for x in clean) / len(clean)
 
-def calculate_modules(records, decision_at, min_history=60):
+def calculate_modules(records, decision_at, min_history=60, mode="live"):
     """Input records keyed by factor name, each with PIT fields and
     normalized risk percentile. No module gets VERIFIED from partial inputs.
     Returns (verified modules, comprehensive module diagnostics).
@@ -40,7 +40,7 @@ def calculate_modules(records, decision_at, min_history=60):
             if item is None:
                 problems[factor] = "MISSING"
                 continue
-            eligibility = validate_record(item, decision_at)
+            eligibility = validate_record(item, decision_at, mode=mode)
             if not eligibility["usable"]:
                 problems[factor] = eligibility["reason"]
                 continue
