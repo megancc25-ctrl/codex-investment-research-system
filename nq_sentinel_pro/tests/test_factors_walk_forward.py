@@ -33,7 +33,7 @@ class SixModuleTests(unittest.TestCase):
                          "UNVERIFIED_HISTORICAL_RELEASE")
 
     def test_no_future_release(self):
-        r=evidence("x",published="2026-11-13T00:00:00Z")
+        r=evidence("x",published="2026-11-13T00:00:00Z",retrieved="2026-11-14T09:00:00Z")
         self.assertEqual(validate_record(r,"2026-11-11T23:59:59Z",mode="historical")["reason"],
                          "LOOKAHEAD")
 
