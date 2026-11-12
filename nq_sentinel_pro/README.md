@@ -101,3 +101,28 @@ The full 0-100 score requires **100% independently verified module weight**.
 An 80% partial sum is not a 100-point score and is not renormalized.
 No full historical free-data backtest is claimed; legacy Level 0-3 remains
 separate and UNVALIDATED.
+
+### Six-module factor engine and historical evaluation (work in progress)
+
+`sentinel/factors_v2.py` defines deterministic calculators for the existing
+six factor families and requires complete factor evidence per module. Each
+input needs a numeric 0-100 **historically normalized risk percentile**,
+at least 60 past observations, source and availability timestamps. This
+factor interface does not itself build those historical distributions from
+SEC/FINRA/Nasdaq/Cboe raw inputs; adapters and transforms still require
+end-to-end wiring and real-source validation.
+
+`sentinel/point_in_time.py` distinguishes **live** evidence (must have
+been retrieved by the decision time) from **historical reconstruction**
+(later retrieval permitted only if original release time was independently
+verified). A caller must not set `historical_release_verified` merely
+because the source contains an observation date.
+
+`sentinel/walk_forward_v2.py` evaluates dated evidence and future
+drawdown outcomes without fabricated scores or trades. It is a testable
+research scaffold, **not yet a full historical six-module backtest**:
+historical free source archives, genuine release timestamps, index
+membership, data revision histories and rolling parameter selection
+remain to be completed. Current daily report still uses its existing
+research pipeline; the six-module factor engine is not yet connected
+to live data.
