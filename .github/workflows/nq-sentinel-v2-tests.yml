@@ -1,0 +1,25 @@
+name: NQ Sentinel V2 tests
+on:
+  pull_request:
+    paths:
+      - 'nq_sentinel_pro/**'
+      - '.github/workflows/nq-sentinel-v2-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: nq_sentinel_pro
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile Python sources
+        run: python -m compileall -q sentinel run_daily.py tests
+      - name: Run deterministic offline tests
+        run: python -m unittest discover -s tests -v
