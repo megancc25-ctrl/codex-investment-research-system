@@ -9,6 +9,10 @@ import hashlib
 import io
 import json
 import math
+import os
+import time
+import urllib.parse
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -41,16 +45,59 @@ def parse_csv(raw, series):
         raise ValueError("Insufficient historical observations")
     return result
 
-def download(series, opener=None):
-    url=URL+series
-    request=urllib.request.Request(url,headers={"User-Agent":"NQ-Sentinel-Pro-Research/2.0"})
+def api_to_csv(payload, series):
+    """Normalize official FRED API v1 JSON into the same audited CSV schema."""
+    data=json.loads(payload.decode("utf-8"))
+    if not isinstance(data.get("observations"),list):
+        raise ValueError("Missing FRED API observations")
+    stream=io.StringIO()
+    writer=csv.writer(stream,lineterminator="\\n")
+    writer.writerow(["observation_date",series])
+    for row in data["observations"]:
+        writer.writerow([row["date"],row["value"]])
+    return stream.getvalue().encode("utf-8")
+
+def _request(req, opener, timeout=12):
     if opener is None:
-        opener=lambda req:urllib.request.urlopen(req,timeout=25)
-    with opener(request) as response:
+        opener=lambda request:urllib.request.urlopen(request,timeout=timeout)
+    with opener(req) as response:
         raw=response.read(10_000_001)
     if len(raw)>10_000_000:
         raise ValueError("FRED response exceeds size limit")
     return raw
+
+def download(series, opener=None, api_key=None, attempts=2):
+    """API preferred when configured; otherwise public graph CSV.
+
+    Bounded retries; HTTP authentication errors do not trigger a fallback
+    that might hide misconfiguration. Returned URL never contains API key.
+    """
+    key=api_key if api_key is not None else os.getenv("FRED_API_KEY","")
+    if key:
+        query=urllib.parse.urlencode({"series_id":series,"api_key":key,"file_type":"json"})
+        url="https://api.stlouisfed.org/fred/series/observations?"+query
+        public_url="https://api.stlouisfed.org/fred/series/observations?series_id="+series
+        backend="FRED_API"
+    else:
+        url=URL+series
+        public_url=url
+        backend="FRED_GRAPH"
+    request=urllib.request.Request(url,headers={"User-Agent":"NQ-Sentinel-Pro-Research/2.0"})
+    last=None
+    for attempt in range(attempts):
+        try:
+            raw=_request(request,opener)
+            return (api_to_csv(raw,series) if key else raw),backend,public_url
+        except urllib.error.HTTPError as exc:
+            if exc.code in (400,401,403,404):
+                raise ValueError("FRED API authorization/configuration HTTP "+str(exc.code)) from None
+            last=exc
+        except (TimeoutError,OSError) as exc:
+            last=exc
+        if attempt+1<attempts:
+            time.sleep(min(2**attempt,2))
+    raise RuntimeError("FRED "+backend+" failed after "+str(attempts)+
+                       " attempts: "+type(last).__name__) from None
 
 def compute(history, asof, min_history=MIN_HISTORY):
     """Expanding prior-only percentile and 20-observation spread change.
@@ -82,12 +129,12 @@ def run(asof, output, opener=None):
               "note":"Current-vintage FRED CSV cannot establish original historical publication timestamps."}
     for name,series in SERIES.items():
         try:
-            raw=download(series,opener)
+            raw,backend,public_url=download(series,opener)
             history=parse_csv(raw,series)
             path=output/(series+".raw.csv")
             path.write_bytes(raw)
             histories[name]=history
-            manifest["series"][name]={"fred_id":series,"url":URL+series,
+            manifest["series"][name]={"fred_id":series,"url":public_url,"backend":backend,
                 "raw_sha256":hashlib.sha256(raw).hexdigest(),
                 "raw_file":path.name,
                 "observations":len(history),
