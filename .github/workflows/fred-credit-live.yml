@@ -1,0 +1,46 @@
+name: FRED credit live integration
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/v2-risk-scoring-engine
+    paths:
+      - 'nq_sentinel_pro/sentinel/fred_credit_pipeline.py'
+      - 'nq_sentinel_pro/tests/test_fred_credit_pipeline.py'
+      - '.github/workflows/fred-credit-live.yml'
+permissions:
+  contents: read
+jobs:
+  fred-credit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: nq_sentinel_pro
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline deterministic tests
+        run: python -m unittest discover -s tests -v
+      - name: Restore verified FRED cache
+        uses: actions/cache@v4
+        with:
+          path: nq_sentinel_pro/reports/fred_credit/cache
+          key: fred-credit-${{ github.run_id }}
+          restore-keys: |
+            fred-credit-
+      - name: Diagnose official FRED endpoints
+        run: python -m sentinel.fred_network_diagnostics
+      - name: Real official FRED download and factor generation
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python -m sentinel.fred_credit_pipeline --out reports/fred_credit
+      - name: Upload raw official CSV, factor CSV and audit manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fred-credit-evidence
+          path: nq_sentinel_pro/reports/fred_credit/
+          retention-days: 90
