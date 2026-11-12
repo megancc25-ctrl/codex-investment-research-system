@@ -51,7 +51,7 @@ def api_to_csv(payload, series):
     if not isinstance(data.get("observations"),list):
         raise ValueError("Missing FRED API observations")
     stream=io.StringIO()
-    writer=csv.writer(stream,lineterminator="\\n")
+    writer=csv.writer(stream,lineterminator="\n")
     writer.writerow(["observation_date",series])
     for row in data["observations"]:
         writer.writerow([row["date"],row["value"]])
