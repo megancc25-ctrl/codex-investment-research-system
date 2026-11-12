@@ -12,7 +12,9 @@ def iso_utc(value):
         raise ValueError("Timezone required")
     return dt.astimezone(timezone.utc)
 
-def validate_record(record, decision_at):
+def validate_record(record, decision_at, mode="live"):
+    if mode not in ("live", "historical"):
+        raise ValueError("mode must be live or historical")
     """Return structured rejection, never treat historical observation as public availability."""
     required = ("indicator", "value", "unit", "observation_date",
                 "published_at", "retrieved_at", "source_url", "source_kind")
@@ -30,18 +32,20 @@ def validate_record(record, decision_at):
             return {"usable": False, "reason": "PUBLICATION_AFTER_RETRIEVAL"}
         if published > cutoff:
             return {"usable": False, "reason": "LOOKAHEAD"}
-        if retrieved > cutoff:
+        if retrieved > cutoff and mode == "live":
             return {"usable": False, "reason": "NOT_OBSERVED_BY_DECISION"}
+        if mode == "historical" and not record.get("historical_release_verified", False):
+            return {"usable": False, "reason": "UNVERIFIED_HISTORICAL_RELEASE"}
         if not record["source_url"].startswith("https://"):
             return {"usable": False, "reason": "INVALID_SOURCE"}
     except (ValueError, TypeError, KeyError) as exc:
         return {"usable": False, "reason": "INVALID", "detail": str(exc)}
     return {"usable": True, "reason": "OK"}
 
-def audit(records, decision_at):
+def audit(records, decision_at, mode="live"):
     items = []
     for record in records:
-        check = validate_record(record, decision_at)
+        check = validate_record(record, decision_at, mode=mode)
         items.append({"indicator": record.get("indicator"), **check})
     return {"decision_at": decision_at, "total": len(items),
             "usable": sum(i["usable"] for i in items), "checks": items}
