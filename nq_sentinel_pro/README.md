@@ -39,7 +39,7 @@ Never claim model risk weights are personal trade advice. A 5/10/20% SOX hypothe
 
 ## V2 six-module risk scoring (research-only; added 2026-11-12)
 
-Daily workflow runs `python run_daily.py --download --official --out reports`.
+Daily workflow runs `python run_daily.py --download --official --free-sources --out reports`.
 The existing Level 0-3 is preserved as an **unvalidated legacy technical signal**.
 The separate `risk_v2` object in date-stamped JSON contains:
 - `score` (0..100 or null), `version`, `status`, `coverage_pct`,
@@ -47,7 +47,7 @@ The separate `risk_v2` object in date-stamped JSON contains:
   `delta`, `comparable`, and `partial_contribution_sum_NOT_SCORE`.
 - Candidate weights 25% fundamentals, 25% trend/breadth, 20% credit,
   15% liquidity/leverage, 10% valuation/earnings, 5% sentiment/options.
-- A publishable score requires >=80% verified module weight **and**
+- A publishable score requires 100% verified module weight **and**
   independently verified trend, credit, and fundamentals modules.
 - Unverified Yahoo technical proxies do not qualify as VERIFIED.
   Missing observations remain null, not zero. Partial sums are not scores.
@@ -74,3 +74,30 @@ Do not equate successful GitHub Actions with validated forecasts.
 
 Public GitHub contains **no private holdings**, account data or Obsidian vault.
 No trading integrations, new schedules, or historical score overwrites.
+
+### Free-source adapters and release limitations
+
+`sentinel/free_sources.py` implements six public-source intake families:
+SEC companyfacts (selected CIKs), Cboe VIX history, official FINRA monthly CSV
+import, official NDX/SOX membership snapshot import, TSMC IR monthly revenue
+import, and historical SEC GAAP earnings extraction. FRED credit is handled
+by `sentinel/official_data.py`. Date-stamped `*.audit.json` summarizes
+source availability; the main risk score never promotes these unreviewed
+raw inputs into verified factor scores.
+
+The FINRA, TSMC and membership imports require provenance-bearing official
+files. Historical free index membership, analyst EPS revisions and VX1/VX2
+authorized settlements are not automatically available. Their status remains
+MISSING until an official permitted source is configured. The SEC filing
+date alone is not the EDGAR acceptance timestamp; the extractor conservatively
+excludes same-day filings in date-only backtests. Cboe daily history is not
+treated as evidence of exact intraday availability.
+
+`sentinel/point_in_time.py` requires observed-at, published-at, source and
+observation dates for strict lookahead-safe eligibility. Never use an
+observation timestamp as its release timestamp.
+
+The full 0-100 score requires **100% independently verified module weight**.
+An 80% partial sum is not a 100-point score and is not renormalized.
+No full historical free-data backtest is claimed; legacy Level 0-3 remains
+separate and UNVALIDATED.
