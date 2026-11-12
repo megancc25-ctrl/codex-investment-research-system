@@ -122,6 +122,8 @@ def run(asof, output, opener=None):
     output=Path(output)
     output.mkdir(parents=True,exist_ok=True)
     histories={}
+    cache=output/'cache'
+    cache.mkdir(parents=True,exist_ok=True)
     manifest={"asof":asof,"generated_utc":datetime.now(timezone.utc).isoformat(),
               "series":{},"errors":{},
               "pit_status":"CURRENT_VINTAGE_ONLY_NOT_HISTORICAL_PIT_VERIFIED",
@@ -129,14 +131,30 @@ def run(asof, output, opener=None):
               "note":"Current-vintage FRED CSV cannot establish original historical publication timestamps."}
     for name,series in SERIES.items():
         try:
-            raw,backend,public_url=download(series,opener)
-            history=parse_csv(raw,series)
+            try:
+                raw,backend,public_url=download(series,opener)
+                history=parse_csv(raw,series)
+                (cache/(series+".csv")).write_bytes(raw)
+                (cache/(series+".sha256")).write_text(hashlib.sha256(raw).hexdigest(),encoding="ascii")
+                cache_used=False
+            except Exception:
+                cp=cache/(series+".csv")
+                hp=cache/(series+".sha256")
+                if not cp.exists() or not hp.exists():
+                    raise
+                raw=cp.read_bytes()
+                if hashlib.sha256(raw).hexdigest()!=hp.read_text(encoding="ascii"):
+                    raise ValueError("Cache checksum mismatch")
+                history=parse_csv(raw,series)
+                backend="VERIFIED_CACHE_STALE"
+                public_url=URL+series
+                cache_used=True
             path=output/(series+".raw.csv")
             path.write_bytes(raw)
             histories[name]=history
             manifest["series"][name]={"fred_id":series,"url":public_url,"backend":backend,
                 "raw_sha256":hashlib.sha256(raw).hexdigest(),
-                "raw_file":path.name,
+                "raw_file":path.name,"cache_used":cache_used,
                 "observations":len(history),
                 "last_observation":max(history),
                 "first_observation":min(history)}
@@ -153,6 +171,7 @@ def run(asof, output, opener=None):
         writer=csv.DictWriter(f,fieldnames=fields)
         writer.writeheader()
         writer.writerows(factors)
+    manifest["fresh_downloads"]=sum(not v["cache_used"] for v in manifest["series"].values())
     manifest["factor_rows"]=len(factors)
     manifest["all_three_available"]=len(histories)==3
     manifest["all_three_with_factor_rows"]=all(any(x["series"]==name for x in factors) for name in SERIES)
@@ -167,5 +186,5 @@ if __name__=="__main__":
     args=p.parse_args()
     result=run(args.asof,args.out)
     print(json.dumps(result,indent=2))
-    if not result["all_three_available"] or not result["all_three_with_factor_rows"]:
+    if not result["all_three_available"] or not result["all_three_with_factor_rows"] or result["fresh_downloads"]!=3:
         raise SystemExit(1)
