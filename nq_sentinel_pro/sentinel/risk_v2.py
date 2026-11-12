@@ -14,7 +14,7 @@ WEIGHTS = {
     "valuation_earnings": 10,
     "sentiment_options": 5,
 }
-MIN_COVERAGE = 0.80
+MIN_COVERAGE = 1.00
 REQUIRED = ("trend_breadth", "credit_financing", "semiconductor_fundamentals")
 
 def observation(score, asof, source, quality="VERIFIED", evidence=None):
@@ -79,7 +79,7 @@ def score_v2(modules, previous=None):
                          "asof": item["asof"], "source": item["source"],
                          "evidence": item["evidence"]}
     mandatory_ok = all(details[k]["status"] == "VERIFIED" for k in REQUIRED)
-    publishable = verified >= MIN_COVERAGE * 100 and mandatory_ok
+    publishable = verified == 100 and covered == 100 and mandatory_ok
     total = round(sum(contributions.values()), 2) if publishable else None
     comparable = bool(publishable and previous
                       and previous.get("version") == VERSION
