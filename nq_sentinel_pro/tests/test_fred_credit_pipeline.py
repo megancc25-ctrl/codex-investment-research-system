@@ -3,7 +3,7 @@ import hashlib
 import tempfile
 import unittest
 from pathlib import Path
-from sentinel.fred_credit_pipeline import SERIES,parse_csv,compute,run
+from sentinel.fred_credit_pipeline import SERIES,parse_csv,compute,run,download
 
 class Response:
     def __init__(self,payload): self.payload=payload
@@ -62,6 +62,21 @@ class FredCreditTests(unittest.TestCase):
             for item in result["series"].values():
                 raw=(Path(d)/item["raw_file"]).read_bytes()
                 self.assertEqual(hashlib.sha256(raw).hexdigest(),item["raw_sha256"])
+
+    def test_api_json_conversion_and_secret_redaction(self):
+        import json
+        def api_opener(req):
+            self.assertIn("api.stlouisfed.org",req.full_url)
+            self.assertIn("secret-for-fixture",req.full_url)
+            from datetime import date,timedelta
+            observations=[{"date":str(date(2026,1,1)+timedelta(days=i)),
+                           "value":str(1+i/100)} for i in range(100)]
+            return Response(json.dumps({"observations":observations}).encode())
+        raw,backend,url=download(SERIES["hy_oas"],api_opener,
+                                 api_key="secret-for-fixture")
+        self.assertEqual(backend,"FRED_API")
+        self.assertNotIn("secret-for-fixture",url)
+        self.assertEqual(len(parse_csv(raw,SERIES["hy_oas"])),100)
 
     def test_missing_source_never_fabricated(self):
         def bad(req):
