@@ -40,8 +40,9 @@ jobs:
         id: monitor
         shell: bash
         run: |
+          as_of="$(TZ=America/New_York date +%F)"
           set +e
-          python -m sentinel.crs.cli --as-of "$(date -u +%F)"
+          python -m sentinel.crs.cli --as-of "$as_of"
           result=$?
           set -e
           if [ "$result" -ne 0 ]; then
@@ -53,7 +54,7 @@ jobs:
             exit "$result"
           fi
           if ! python -m sentinel.crs.actions_summary \
-            --report "reports/crs/CRS_DAILY_$(date -u +%F).json" \
+            --report "reports/crs/CRS_DAILY_${as_of}.json" \
             --summary "$GITHUB_STEP_SUMMARY"; then
             {
               echo "## CRS daily report"

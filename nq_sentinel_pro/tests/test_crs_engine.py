@@ -575,6 +575,50 @@ class CRSEngineTests(unittest.TestCase):
                     self.assertNotIn("No simultaneous 20-day decline",flattened)
                 self.assertTrue(evidence[expected_bucket])
 
+    def test_credit_evidence_status_matrix(self):
+        score = {"modules":{}}
+        feature = {"synchronized_three_asset_down_20d":record(False)}
+        cases = [
+            ("CLEAR", "against", "Credit risk combination alert is clear"),
+            ("YELLOW", "supporting", "Credit risk combination alert is YELLOW"),
+            ("RED_CANDIDATE", "supporting", "Credit risk combination alert is RED_CANDIDATE"),
+            ("SEVERE_WATCH", "supporting", "Credit risk combination alert is SEVERE_WATCH"),
+            ("INSUFFICIENT_DATA", "data_limits", "Credit risk confirmation is INSUFFICIENT_DATA"),
+            ("UNKNOWN", "data_limits", "Credit risk alert state UNKNOWN"),
+        ]
+        for state,bucket,expected_text in cases:
+            with self.subTest(state=state):
+                evidence=_evidence(score,feature,{"liquidity_crisis":{"state":"CLEAR"},
+                    "credit_risk":{"state":state}})
+                self.assertTrue(any(expected_text in item for item in evidence[bucket]))
+                if state != "CLEAR":
+                    self.assertFalse(any("Credit risk combination alert is clear" in item
+                                         for item in evidence["against"]))
+                if state in ("INSUFFICIENT_DATA","UNKNOWN"):
+                    self.assertFalse(any("Credit risk" in item for item in evidence["against"]))
+        missing=_evidence(score,feature,{"liquidity_crisis":{"state":"CLEAR"}})
+        self.assertTrue(any("Credit risk alert state MISSING" in item for item in missing["data_limits"]))
+        self.assertFalse(any("Credit risk" in item for item in missing["against"]))
+
+    def test_json_markdown_html_preserve_evidence_buckets(self):
+        report={"asof":"2026-11-18","generated_at":"2026-11-18T22:00:00+00:00",
+            "score_result":{"score":None,"status":"INSUFFICIENT_DATA","data_coverage_pct":60,
+                "data_confidence":"LOW","modules":{},"metric_details":{}},
+            "state_machine":{"state":"INSUFFICIENT_DATA"},"alerts":{},
+            "decision":{"action":"NO_POSITION_ACTION","rationale":"Insufficient data"},
+            "evidence":{"supporting":["CREDIT_SUPPORT_SENTINEL"],
+                "against":["CREDIT_AGAINST_SENTINEL"],"data_limits":["CREDIT_LIMIT_SENTINEL"]},
+            "source_status":{}}
+        with tempfile.TemporaryDirectory() as tmp:
+            paths=write_reports(report,tmp)
+            payload=json.loads(Path(paths["json"]).read_text(encoding="utf-8"))
+            markdown=Path(paths["markdown"]).read_text(encoding="utf-8")
+            html_report=Path(paths["html"]).read_text(encoding="utf-8")
+            self.assertEqual(payload["evidence"],report["evidence"])
+            for sentinel in ("CREDIT_SUPPORT_SENTINEL","CREDIT_AGAINST_SENTINEL","CREDIT_LIMIT_SENTINEL"):
+                self.assertIn(sentinel,markdown)
+                self.assertIn(sentinel,html_report)
+
     def test_local_private_overlay_calculates_only_user_supplied_stress(self):
         from local_crs_portfolio import calculate_stress, write_obsidian
         profile = {"max_loss_budget_pct":0.10,

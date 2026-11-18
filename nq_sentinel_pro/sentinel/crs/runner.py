@@ -22,11 +22,18 @@ def _evidence(score_result, features, alerts):
             against.append(f"{name} module is low at {item['score']:.1f}/100 with complete configured group coverage.")
     if alerts["liquidity_crisis"]["state"] == "CROSS_ASSET_SELL_OFF":
         against.append("Three-asset sell-off is present, but no verified repo, funding or margin anomaly was supplied; a liquidity-crisis label is withheld.")
-    if alerts["credit_risk"]["state"] in ("CLEAR", "INSUFFICIENT_DATA"):
-        if alerts["credit_risk"]["state"] == "CLEAR":
-            against.append("Credit risk combination alert is clear on the available HY/IG spread and equity inputs.")
-        else:
-            against.append("Credit confirmation is incomplete; missing data cannot be treated as stable credit.")
+    credit_alert = alerts.get("credit_risk")
+    credit_state = credit_alert.get("state", "UNKNOWN") if isinstance(credit_alert, dict) else "MISSING"
+    if credit_state == "CLEAR":
+        against.append("Credit risk combination alert is clear on the available HY/IG spread and equity inputs.")
+    elif credit_state == "YELLOW":
+        supporting.append("Credit risk combination alert is YELLOW: a watch-level combination is present, but the alert is not confirmed at RED_CANDIDATE level.")
+    elif credit_state in ("RED_CANDIDATE", "SEVERE_WATCH"):
+        supporting.append(f"Credit risk combination alert is {credit_state}; this is a risk warning, not a validated crisis probability.")
+    elif credit_state == "INSUFFICIENT_DATA":
+        data_limits.append("Credit risk confirmation is INSUFFICIENT_DATA; missing credit inputs cannot establish either elevated or stable credit risk.")
+    else:
+        data_limits.append(f"Credit risk alert state {credit_state} is unavailable or unrecognized; no credit-risk conclusion can be drawn.")
     sync = features.get("synchronized_three_asset_down_20d")
     if not isinstance(sync, dict):
         data_limits.append("Three-asset synchronization is MISSING; available common dates cannot be assessed.")
