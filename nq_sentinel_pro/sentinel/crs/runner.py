@@ -20,8 +20,31 @@ def _evidence(score_result, features, alerts):
             supporting.append(f"{name} module is elevated at {item['score']:.1f}/100 ({item['coverage_pct']:.0f}% module coverage).")
         elif item["score"] is not None and item["score"] < 25 and item["coverage_pct"] == 100:
             against.append(f"{name} module is low at {item['score']:.1f}/100 with complete configured group coverage.")
-    if alerts["liquidity_crisis"]["state"] == "CROSS_ASSET_SELL_OFF":
-        against.append("Three-asset sell-off is present, but no verified repo, funding or margin anomaly was supplied; a liquidity-crisis label is withheld.")
+    liquidity = alerts.get("liquidity_crisis", {})
+    if not isinstance(liquidity, dict):
+        liquidity = {}
+    liquidity_state = liquidity.get("state", "UNKNOWN")
+    for limit in liquidity.get("data_limits", []):
+        if limit not in data_limits:
+            data_limits.append(limit)
+    if liquidity_state == "RED_CANDIDATE":
+        supporting.append("A three-asset sell-off and a funding-side anomaly are both confirmed; the liquidity combination alert is RED_CANDIDATE.")
+    elif liquidity_state == "FUNDING_STRESS_ONLY":
+        supporting.append("A funding-side stress flag is confirmed without a simultaneous three-asset sell-off; the combined liquidity-crisis rule is not met.")
+    elif liquidity_state == "CROSS_ASSET_SELL_OFF":
+        if liquidity.get("funding_status") == "INSUFFICIENT_DATA" and not liquidity.get("data_limits"):
+            missing = liquidity.get("missing_funding_inputs", [])
+            if missing:
+                data_limits.append("Three-asset sell-off is confirmed, but funding-side inputs are missing: " + ", ".join(missing) + "; the event cannot be classified as a liquidity crisis.")
+            else:
+                data_limits.append("Three-asset sell-off is confirmed, but repo, funding or margin status is incomplete; the event cannot be classified as a liquidity crisis.")
+    elif liquidity_state == "CLEAR" and liquidity.get("funding_status") == "NORMAL_CONFIRMED":
+        against.append("No simultaneous three-asset sell-off was confirmed and all configured repo, funding and margin event flags were explicitly reported normal.")
+    else:
+        if liquidity.get("funding_stress_confirmed"):
+            supporting.append("A funding-side anomaly is confirmed, but the available cross-asset synchronization data do not establish the combined liquidity-crisis condition.")
+        if not liquidity.get("data_limits"):
+            data_limits.append(f"Liquidity status {liquidity_state} does not establish that both cross-asset and funding conditions are normal.")
     credit_alert = alerts.get("credit_risk")
     credit_state = credit_alert.get("state", "UNKNOWN") if isinstance(credit_alert, dict) else "MISSING"
     if credit_state == "CLEAR":

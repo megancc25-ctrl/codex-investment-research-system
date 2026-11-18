@@ -33,11 +33,25 @@ def evaluate_alerts(features, metrics=None):
     severe_value = _get(features, "synchronized_three_asset_loss_5pct")
     sync = bool(sync_value) if sync_value is not None else False
     severe_sync = bool(severe_value) if severe_value is not None else False
-    repo_bad = _yes(metrics.get("repo_extreme"))
-    funding_bad = _yes(metrics.get("funding_market_failure")) or _yes(metrics.get("margin_stress"))
-    liquidity = ("RED_CANDIDATE" if sync and (repo_bad or funding_bad) else
+    funding_keys = ("repo_extreme", "funding_market_failure", "margin_stress")
+    funding_missing = [key for key in funding_keys
+                       if metrics.get(key) is not True and metrics.get(key) is not False]
+    funding_stress_inputs = [key for key in funding_keys if metrics.get(key) is True]
+    funding_status = ("STRESS_CONFIRMED" if funding_stress_inputs else
+                      "NORMAL_CONFIRMED" if not funding_missing else "INSUFFICIENT_DATA")
+    funding_stress = bool(funding_stress_inputs)
+    repo_bad = metrics.get("repo_extreme") is True
+    funding_bad = any(metrics.get(key) is True for key in ("funding_market_failure", "margin_stress"))
+    liquidity_data_limits = []
+    if funding_missing:
+        liquidity_data_limits.append("Funding-side inputs unavailable: " + ", ".join(funding_missing) + ".")
+    if sync_value is None:
+        liquidity_data_limits.append("Three-asset synchronization is unavailable; the combined liquidity alert cannot be determined.")
+    liquidity = ("RED_CANDIDATE" if sync and funding_stress else
                  "CROSS_ASSET_SELL_OFF" if sync else
-                 "CLEAR" if sync_value is not None else "INSUFFICIENT_DATA")
+                 "INSUFFICIENT_DATA" if sync_value is None else
+                 "FUNDING_STRESS_ONLY" if funding_stress else
+                 "INSUFFICIENT_DATA" if funding_missing else "CLEAR")
 
     ai_keys = ("cloud_capex_yoy_pct", "cloud_operating_cash_flow_yoy_pct",
                "free_cash_flow_yoy_pct", "gpu_rental_price_yoy_pct",
@@ -61,6 +75,11 @@ def evaluate_alerts(features, metrics=None):
                         "evidence": [k for k, ok in zip(("hy_widening", "ig_wide", "cdx_hy_widening", "equity_down"), credit_flags) if ok]},
         "liquidity_crisis": {"state": liquidity, "synchronized_three_asset_loss": sync,
                              "severe_synchronized_loss": severe_sync,
+                             "funding_status": funding_status,
+                             "funding_stress_confirmed": funding_stress,
+                             "funding_stress_inputs": funding_stress_inputs,
+                             "missing_funding_inputs": funding_missing,
+                             "data_limits": liquidity_data_limits,
                              "evidence": [k for k, ok in (("stock_bond_gold_sync", sync),
                              ("repo_extreme", repo_bad), ("funding_or_margin_stress", funding_bad)) if ok],
                              "rule": "Requires stock, bond and gold all down plus a confirmed repo/funding/margin anomaly."},

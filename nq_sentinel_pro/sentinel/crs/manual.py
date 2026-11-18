@@ -45,17 +45,20 @@ def load_manual_evidence(path, asof):
     for key, record in payload.get("events", {}).items():
         if key not in EVENT_KEYS:
             raise ValueError(f"Unsupported event flag: {key}")
-        if record.get("value") is not True:
-            events[key] = False
-            continue
+        value = record.get("value")
+        if not isinstance(value, bool):
+            raise ValueError("Manual event value must be an explicit boolean with source evidence")
+        if not record.get("published_at") or not record.get("retrieved_at") \
+                or not record.get("source_url", "").startswith("https://") or not record.get("observation_date"):
+            raise ValueError("True and false manual event findings require an HTTPS source and observation/publication/retrieval dates")
         published, retrieved = _utc(record["published_at"]), _utc(record["retrieved_at"])
         if published > retrieved or retrieved > cutoff or not record.get("source_url", "").startswith("https://"):
-            raise ValueError("Event evidence needs valid time order and an HTTPS source")
-        events[key] = True
-        observation_date = record.get("observation_date")
-        if observation_date is not None and date.fromisoformat(observation_date) > date.fromisoformat(asof):
+            raise ValueError("Event evidence needs valid time order and an HTTPS source for true and false findings")
+        events[key] = value
+        observation_date = date.fromisoformat(record["observation_date"])
+        if observation_date > date.fromisoformat(asof):
             raise ValueError("Manual event has a future observation date")
-        event_evidence[key] = {"source": record["source_url"], "observation_date": observation_date,
+        event_evidence[key] = {"source": record["source_url"], "observation_date": observation_date.isoformat(),
                                "published_at": published.isoformat(), "retrieved_at": retrieved.isoformat(),
                                "quality": record.get("quality", "MANUAL_EVENT"),
                                "license_status": record.get("license_status", "REVIEW_REQUIRED")}

@@ -40,7 +40,18 @@ jobs:
         id: monitor
         shell: bash
         run: |
-          as_of="$(TZ=America/New_York date +%F)"
+          set +e
+          as_of="$(python -m sentinel.crs.market_calendar)"
+          calendar_result=$?
+          set -e
+          if [ "$calendar_result" -ne 0 ] || [ -z "$as_of" ]; then
+            {
+              echo "## CRS daily report"
+              echo "- Pipeline status: **PIPELINE_FAILED**"
+              echo "- Reason: latest completed XNYS session could not be resolved."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
           set +e
           python -m sentinel.crs.cli --as-of "$as_of"
           result=$?

@@ -304,6 +304,36 @@ class CRSEngineTests(unittest.TestCase):
         self.assertEqual(alert["liquidity_crisis"]["state"], "RED_CANDIDATE")
         self.assertTrue(alert["liquidity_crisis"]["severe_synchronized_loss"])
 
+    def test_liquidity_clear_requires_explicit_normal_funding_inputs(self):
+        feature={"synchronized_three_asset_down_20d":record(False)}
+        alert=evaluate_alerts(feature,{})["liquidity_crisis"]
+        self.assertEqual(alert["state"],"INSUFFICIENT_DATA")
+        self.assertEqual(alert["funding_status"],"INSUFFICIENT_DATA")
+        self.assertCountEqual(alert["missing_funding_inputs"],
+                              ["repo_extreme","funding_market_failure","margin_stress"])
+        normal={"repo_extreme":False,"funding_market_failure":False,"margin_stress":False}
+        alert=evaluate_alerts(feature,normal)["liquidity_crisis"]
+        self.assertEqual(alert["state"],"CLEAR")
+        self.assertEqual(alert["funding_status"],"NORMAL_CONFIRMED")
+
+    def test_sync_selloff_with_missing_funding_is_limited_not_confirmed_stress(self):
+        feature={"synchronized_three_asset_down_20d":record(True)}
+        alert=evaluate_alerts(feature,{})["liquidity_crisis"]
+        self.assertEqual(alert["state"],"CROSS_ASSET_SELL_OFF")
+        self.assertEqual(alert["funding_status"],"INSUFFICIENT_DATA")
+        self.assertFalse(alert["funding_stress_confirmed"])
+        self.assertTrue(alert["data_limits"])
+        alert=evaluate_alerts(feature,{"repo_extreme":True,"funding_market_failure":False,
+                                       "margin_stress":False})["liquidity_crisis"]
+        self.assertEqual(alert["state"],"RED_CANDIDATE")
+        self.assertTrue(alert["funding_stress_confirmed"])
+
+    def test_funding_stress_without_sync_selloff_is_not_clear(self):
+        feature={"synchronized_three_asset_down_20d":record(False)}
+        alert=evaluate_alerts(feature,{"repo_extreme":True})["liquidity_crisis"]
+        self.assertEqual(alert["state"],"FUNDING_STRESS_ONLY")
+        self.assertTrue(alert["funding_stress_confirmed"])
+
     def test_missing_ai_satellite_data_is_explicit(self):
         alert = evaluate_alerts({}, {})
         self.assertEqual(alert["ai_capital_return"]["state"], "INSUFFICIENT_DATA")
@@ -449,6 +479,22 @@ class CRSEngineTests(unittest.TestCase):
             path.write_text(json.dumps(payload),encoding="utf-8")
             with self.assertRaises(KeyError):
                 load_manual_evidence(path,"2026-11-18")
+
+    def test_manual_false_event_requires_attributable_confirmation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/"manual.json"
+            path.write_text(json.dumps({"asof":"2026-11-18","features":{},
+                "events":{"repo_extreme":{"value":False}}}),encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_manual_evidence(path,"2026-11-18")
+            path.write_text(json.dumps({"asof":"2026-11-18","features":{},
+                "events":{"repo_extreme":{"value":False,"source_url":"https://example.org/repo",
+                    "observation_date":"2026-11-18","published_at":"2026-11-18T10:00:00Z",
+                    "retrieved_at":"2026-11-18T11:00:00Z"}}}),encoding="utf-8")
+            loaded=load_manual_evidence(path,"2026-11-18")
+            self.assertIs(loaded["events"]["repo_extreme"],False)
+            self.assertEqual(loaded["event_evidence"]["repo_extreme"]["source"],
+                             "https://example.org/repo")
 
     def test_reports_redact_licensed_values_and_write_three_formats(self):
         report = {"asof":"2026-11-18","generated_at":"2026-11-18T22:00:00+00:00",
@@ -599,6 +645,43 @@ class CRSEngineTests(unittest.TestCase):
         missing=_evidence(score,feature,{"liquidity_crisis":{"state":"CLEAR"}})
         self.assertTrue(any("Credit risk alert state MISSING" in item for item in missing["data_limits"]))
         self.assertFalse(any("Credit risk" in item for item in missing["against"]))
+
+    def test_cross_asset_selloff_is_not_counter_evidence_when_funding_is_unknown(self):
+        score={"modules":{}}
+        feature={"synchronized_three_asset_down_20d":record(True)}
+        alerts={"liquidity_crisis":{"state":"CROSS_ASSET_SELL_OFF",
+                "funding_status":"INSUFFICIENT_DATA","missing_funding_inputs":["repo_extreme"]},
+                "credit_risk":{"state":"CLEAR"}}
+        evidence=_evidence(score,feature,alerts)
+        self.assertTrue(any("simultaneous 20-day decline" in item for item in evidence["supporting"]))
+        self.assertFalse(any("sell-off is present" in item.lower() for item in evidence["against"]))
+        self.assertTrue(any("repo_extreme" in item for item in evidence["data_limits"]))
+
+    def test_liquidity_evidence_buckets_are_preserved_in_all_report_formats(self):
+        score={"score":None,"status":"INSUFFICIENT_DATA","data_coverage_pct":70,
+               "data_confidence":"LOW","modules":{},"metric_details":{}}
+        features={"synchronized_three_asset_down_20d":record(True)}
+        alerts={"liquidity_crisis":{"state":"CROSS_ASSET_SELL_OFF",
+                "funding_status":"INSUFFICIENT_DATA","missing_funding_inputs":["repo_extreme"]},
+                "credit_risk":{"state":"CLEAR"}}
+        evidence=_evidence(score,features,alerts)
+        report={"asof":"2026-11-18","generated_at":"2026-11-18T22:00:00+00:00",
+            "score_result":score,"state_machine":{"state":"INSUFFICIENT_DATA"},
+            "alerts":alerts,"evidence":evidence,
+            "decision":{"action":"NO_POSITION_ACTION","rationale":"Insufficient data"},
+            "source_status":{}}
+        with tempfile.TemporaryDirectory() as tmp:
+            paths=write_reports(report,tmp)
+            payload=json.loads(Path(paths["json"]).read_text(encoding="utf-8"))
+            markdown=Path(paths["markdown"]).read_text(encoding="utf-8")
+            html_report=Path(paths["html"]).read_text(encoding="utf-8")
+            self.assertEqual(payload["evidence"],evidence)
+            self.assertFalse(any("sell-off is present" in item.lower()
+                                 for item in payload["evidence"]["against"]))
+            for rendered in (markdown,html_report):
+                self.assertIn("simultaneous 20-day decline",rendered)
+                self.assertIn("repo_extreme",rendered)
+                self.assertNotIn("sell-off is present, but",rendered)
 
     def test_json_markdown_html_preserve_evidence_buckets(self):
         report={"asof":"2026-11-18","generated_at":"2026-11-18T22:00:00+00:00",
