@@ -27,14 +27,32 @@ def candidate_state(score_result, emergency_market_failure=False):
         return "L1"
     return "L0"
 
-def transition_state(raw_candidate, history=None, emergency_market_failure=False):
+def candidate_reasons(score_result, emergency_market_failure=False):
+    """Explain L4 credit/liquidity score triggers or the manual emergency override."""
+    if emergency_market_failure:
+        return ["MANUAL_EMERGENCY_MARKET_FAILURE"]
+    score = score_result.get("score")
+    if score is None or score < 80:
+        return []
+    modules = score_result.get("modules", {})
+    reasons = []
+    for module, code in (("credit", "CREDIT_MODULE_SCORE"), ("liquidity", "LIQUIDITY_MODULE_SCORE")):
+        value = modules.get(module, {}).get("score")
+        if value is not None and value >= 85:
+            reasons.append(code)
+    return reasons
+
+def transition_state(raw_candidate, history=None, emergency_market_failure=False, candidate_reason_codes=None):
     history = list(history or [])
+    candidate_reason_codes = list(candidate_reason_codes or [])
     if emergency_market_failure:
         return {"state": "L4", "raw_candidate": "L4", "transition": "EMERGENCY_OVERRIDE",
-                "confirmations": 1, "required_confirmations": 1}
+                "confirmations": 1, "required_confirmations": 1,
+                "candidate_reason_codes": ["MANUAL_EMERGENCY_MARKET_FAILURE"]}
     if raw_candidate == "INSUFFICIENT_DATA":
         return {"state": raw_candidate, "raw_candidate": raw_candidate,
-                "transition": "DATA_GATE", "confirmations": 0, "required_confirmations": None}
+                "transition": "DATA_GATE", "confirmations": 0, "required_confirmations": None,
+                "candidate_reason_codes": candidate_reason_codes}
     previous = next((x.get("state") for x in reversed(history) if x.get("state") in STATE_ORDER), "L0")
     old_idx, new_idx = STATE_ORDER.index(previous), STATE_ORDER.index(raw_candidate)
     if new_idx > old_idx:
@@ -48,7 +66,8 @@ def transition_state(raw_candidate, history=None, emergency_market_failure=False
         state = raw_candidate if count >= needed else previous
         return {"state": state, "raw_candidate": raw_candidate,
                 "transition": "UPGRADE_CONFIRMED" if state == raw_candidate else "UPGRADE_PENDING",
-                "confirmations": count, "required_confirmations": needed}
+                "confirmations": count, "required_confirmations": needed,
+                "candidate_reason_codes": candidate_reason_codes}
     if new_idx < old_idx:
         count = 1
         for item in reversed(history):
@@ -60,6 +79,8 @@ def transition_state(raw_candidate, history=None, emergency_market_failure=False
         state = raw_candidate if count >= needed else previous
         return {"state": state, "raw_candidate": raw_candidate,
                 "transition": "DEESCALATION_CONFIRMED" if state == raw_candidate else "DEESCALATION_PENDING",
-                "confirmations": count, "required_confirmations": needed}
+                "confirmations": count, "required_confirmations": needed,
+                "candidate_reason_codes": candidate_reason_codes}
     return {"state": previous, "raw_candidate": raw_candidate,
-            "transition": "UNCHANGED", "confirmations": 0, "required_confirmations": 0}
+            "transition": "UNCHANGED", "confirmations": 0, "required_confirmations": 0,
+            "candidate_reason_codes": candidate_reason_codes}

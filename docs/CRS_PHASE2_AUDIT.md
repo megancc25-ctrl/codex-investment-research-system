@@ -1,121 +1,57 @@
-# CRS 1.0 第二阶段质量审计报告（第一轮）
+# CRS 1.0 第二阶段质量审计与修正记录
 
-- 审计日期：2026-11-18（Asia/Shanghai）
-- 审计目标：`megancc25-ctrl/codex-investment-research-system`
-- 分支：`feature/crs-v1.0`
-- 审计基线：`fe9a5430d1bfd2d3a83de2e9af904bdd928dde04`
-- 审计模式：代码与工作流审阅；本轮不修改运行逻辑、不创建 PR、不合并
+## 范围与基线
 
-## 结论
+审计对象为 `feature/crs-v1.0` 上的 CRS 1.0 实现。NQ-Sentinel 原始评分权重、指标与历史记录保持不变；本次不创建真实交易、不修改 `main`、不合并分支。报告中的评分仅为研究指标，不是危机概率或交易建议。
 
-当前 CRS 是以美国市场为核心的跨资产风险研究原型。七模块、分组评分、缺失值不填零、DuckDB/Parquet 存储、三种日报格式及本地持仓覆盖层均有代码实现。代码形态不等于市场数据完整，也不证明预测有效。
+本次修正针对阶段二审计发现的发布状态歧义、关键数据缺失可能被总体覆盖率掩盖、来源元数据不足、L4来源语义不完整和历史回测缺少点时证据等风险。数据源是否配置不等于当日真实采集成功；日报中的实际状态由运行产物给出。
 
-第一轮发现三个需要先处理的高优先级问题：
+## P0：流程与评分状态
 
-1. GitHub Actions 把 CLI 的退出码 2（报告生成但数据不足）转换为步骤成功，且没有写入 Actions Summary。绿色工作流可能被误读为已发布完整评分。
-2. 总覆盖率按模块内“分组是否至少有一个可用指标”计算。市场广度、MOVE、Repo 压力等关键指标缺失时，85%总覆盖仍可能达标；日报没有一个独立的关键指标缺失门。
-3. L4 状态只记录等级和候选等级，没有记录信用触发、流动性触发或人工紧急覆盖的原因。历史状态无法仅凭状态机字段追溯触发归因。
+- CLI 将“诊断报告成功写出”视为 `PIPELINE_SUCCESS`，但不将 `DATA_INSUFFICIENT` 显示为完整评分成功；运行异常返回非零并显示 `PIPELINE_FAILED`。
+- 报告使用独立 `pipeline_status` 和 `score_status`，其中评分状态为 `SCORE_PUBLISHED` 或 `DATA_INSUFFICIENT`。
+- GitHub Actions Summary 展示覆盖率、关键缺失模块/指标、是否发布完整评分、最终分数（如有）、状态机状态，以及各失败/缺失来源和原因。
+- Summary 渲染失败也会令 workflow 失败；安装或离线检查阶段失败会写出 `PIPELINE_FAILED` 摘要。
 
-本轮没有修改 CRS 运行代码。依照任务约束，待人工确认后再实施 P0/P1/P2/P3 方案。
+## P1：数据覆盖与来源完整性
 
-## P0 — 工作流状态语义
+- CRS 总覆盖率按配置模块权重对模块内组覆盖率聚合，评分发布使用未四舍五入的覆盖率并要求达到 85%。
+- 即便总覆盖率达到 85%，缺少 credit/liquidity 关键模块或关键指标（广度、MOVE、Repo百分位、HY/IG OAS）仍阻止发布。
+- 对未接入的 MOVE、广度、Repo连续序列和CDX，保持 `MISSING`；DXY、IEF、GLD等只能按明确代理标注，不冒充原指标。
+- 采集状态和特征保留来源、观察日期、发布时间、检索时间、质量及许可字段；未知发布时间保持空值。受限 OAS 原值在公共日报中脱敏。
+- 数据源范围、授权和实测覆盖日期逐项见 [CRS_DATA_COVERAGE_MATRIX.md](CRS_DATA_COVERAGE_MATRIX.md)。
 
-检查了 `.github/workflows/crs-daily.yml`、`sentinel/crs/cli.py` 和报告生成链：
+## P2：评分、点时与状态机
 
-- CLI 在报告评分可用时返回 0；覆盖不足时返回 2；未捕获异常通常由进程返回非零错误码。
-- 工作流允许退出码 0、1、2 之外的逻辑并不清晰：脚本在结果大于 2 时失败，而 2 被吞掉并以 0 结束。因此，数据不足的运行会显示成功。
-- 工作流没有 `$GITHUB_STEP_SUMMARY` 输出；界面上看不到覆盖率、关键缺失模块、评分是否发布、分数、状态机状态或来源失败原因。
-- 上传步骤在监控步骤失败时仍尝试运行（`always()`），这有利于保留已生成的诊断报告，但不能替代明确的运行状态。
-- 调度表达式为周一至周五 23:30 UTC。GitHub 只从默认分支执行计划任务；当前分支尚未合并，因此定时任务尚未在默认分支启用。
+- 模块权重总和及模块内组聚合通过配置和测试核查；NQ-Sentinel权重回归测试确保原值未变。
+- 历史百分位仅接收决策日前传入的历史；评分函数不主动读取当前/未来观测作为历史。采集层历史查询截止到 `asof`，去重并截断至窗口。
+- 回测输入要求带决策时点、观察/发布时间/检索时间、vintage/source ID、SHA-256及授权状态，并校验时间顺序；这些结构检查不等于真实性证明。
+- L0-L4保持升级两次确认、降级五次确认；人工市场功能失效为紧急覆盖。修正 L4 的常规评分触发条件不再错误依赖紧急覆盖标志，并记录 `CREDIT_MODULE_SCORE` / `LIQUIDITY_MODULE_SCORE` 原因码；人工覆盖记录独立原因码。
+- 自动化测试覆盖 79.9/80 分、84.9/85 分模块门槛、84.9%/85%覆盖率、关键数据门槛、点时排除以及状态迁移。
 
-建议后续把“流程是否完成”和“评分是否可发布”分开记录，并在 Actions Summary 明确列出：
-`PIPELINE_SUCCESS`（报告流程完成）、`DATA_INSUFFICIENT`（报告生成但数据闸门未通过）、`SCORE_PUBLISHED`（完整 CRS 评分生成）、`PIPELINE_FAILED`（采集/计算/写报告发生错误）。具体实现时需定义单次运行的主状态与评分状态，避免把“流程成功”和“评分成功”合并成一个绿色结果。
+## P3：回测准备
 
-## P1 — 覆盖和来源完整性
+未伪造 2008、2020 或 2022 年历史数据，也没有计算危机命中率、提前量或误报率。现阶段相关源缺少可验证的历史发布版本、修订快照或授权证据，不能标为 `PIT_VERIFIED`。逐源矩阵及阻断项见 [CRS_BACKTEST_READINESS.md](CRS_BACKTEST_READINESS.md)。
 
-`crs_v1.json` 定义 26 个规则指标。引擎按七模块权重加权模块分组覆盖率；每组只要至少一个指标有效就计为已覆盖。模块内组分取该组可用指标的最大风险分，模块分再对可用组取平均。信用与流动性闸门检查的是模块是否有分数，不要求全部组或指定指标齐全。
+## 验证与限制
 
-这意味着 85% 覆盖率并不能证明所有预先声明的关键风险信号都在场。按现有规则分组，广度组缺失最多减少股票模块权重的四分之一（总分覆盖约 3.75 个百分点），MOVE 组缺失约 5 个百分点，Repo 组缺失约 4 个百分点。三项同时缺失而其他组可用时，理论覆盖仍约为 87.25%，超过 85%。当前实现因此可能发布“可计算的研究评分”，但缺少用户点名的重要风险维度。
+执行命令：`python -m compileall -q sentinel tests local_crs_portfolio.py` 和 `python -m unittest discover -s tests -v`。完整标准输出、测试数和退出码记录在 [CRS_PHASE2_TEST_LOG.txt](CRS_PHASE2_TEST_LOG.txt)。该日志为本地离线测试，不代表 GitHub Actions 已运行，也不代表实时数据源已端到端验证。具体当日实时覆盖应以实际报告为准；没有原始真实观测时评分保持不足数据。
 
-关键数据逐项审计：
+## 修改清单与理由
 
-| 指标 | 当前实现/来源 | 当前限制及审计判断 |
-|---|---|---|
-| 股票市场广度 | 配置有 `breadth_above_200dma`；指标计算明确不伪造广度；没有自动采集接入 | 运行数据应为缺失；没有独立关键缺失门 |
-| MOVE | 配置有 `move_level`；FRED 白名单和市场价格适配器均未接入 MOVE | 当前缺失；没有已验证来源或发布时间 |
-| Repo 利率与成交量 | 配置有 `repo_rate_percentile`；无 Repo 费率/成交量历史采集 | 仅事件字段可由人工证据提供 `repo_extreme`；不能视为连续历史指标 |
-| CDX IG/HY | 无自动 CDX 适配器；人工事件白名单只有 `cdx_hy_widening`（HY 布尔标记） | 无 IG/HY 点位或历史变化序列；不是评分指标数据 |
-| DXY | 优先使用 FRED `DTWEXBGS` 广义贸易加权美元；如缺失可使用 Yahoo `DX-Y.NYB` 代理 | 两者均不能标记为 ICE DXY；FRED 分支有显式“不是 DXY”来源标签 |
-| 美国国债总回报 | Yahoo `IEF` 价格代理 | IEF 是 ETF 代理，非广义美国国债总回报指数；价格来源未独立核对 |
-| 黄金价格 | Yahoo `GLD` 价格代理 | ETF 代理，非现货黄金基准；价格来源未独立核对 |
-| 房地产 | FRED Case-Shiller、成屋销售、按揭利率、CPI | 美国口径；月度发布时点/修订 vintage 未纳入 PIT 数据；不代表全球房地产 |
-| HY/IG OAS | FRED ICE BofA HY、IG OAS 序列 | 数据被标记为 `LICENSE_RESTRICTED`；采集返回当前 vintage，发布日期为空。FRED 说明自 2026 年 4 月起这些 OAS 序列仅保留三年观察值，并提示受版权及分发限制。见 [HY OAS 系列说明](https://fred.stlouisfed.org/series/BAMLH0A0HYM2) 与 [IG OAS 系列说明](https://fred.stlouisfed.org/series/BAMLC0A0CM)。 |
-
-源元数据目前不统一：FRED 采集结果有 observation date、retrieved_at、quality、license_note、raw hash，但没有 publication timestamp；行情代理诊断有 latest date 和 retrieved_at；派生 feature 通常把 published_at 设为 null，未保留 retrieved_at 或独立 license_status。日报来源状态表也没有为所有可用数据统一输出这些字段。人工证据则要求发布/检索时间和 HTTPS 来源，结构不同于自动数据。
-
-建议下一阶段增加逐项关键数据状态表：每项保留 source、observation_date、published_at、retrieved_at、quality、license_status；当前没有数据时写成 MISSING/INSUFFICIENT_DATA；明确区分“原始指标”和“代理”，日报首页显示关键缺失项。覆盖率闸门应同时检查总覆盖与指定关键指标/分组条件，不能只检查信用、流动性模块是否有任一分数。
-
-## P2 — 评分与状态机
-
-- 权重：七模块合计 100%；配置加载时检查权重总和及 60/40 混合权重。
-- 聚合：模块内按组等权平均，每组取指标最大值，能降低同组重复信号堆叠；但“组有一个指标即可覆盖”会让缺失关键指标被聚合状态遮蔽。
-- 85% 门槛：引擎把加权覆盖率先四舍五入到一位小数，再与 85 比较。建议门槛使用未舍入值，只对展示值舍入，并新增 84.9%/85.0% 边界测试。
-- 60/40 百分位：历史少于 252 个观测时只用阈值分；足够时用 60%阈值分和 40%经验百分位，最长 1260 条。采集的 feature history 在 as-of 日期过滤后构造，当前观测被排除。但引擎接收的 histories 是无日期数字列表，单独调用 `score_snapshot` 时无法自行证明所有历史值早于决策时点；点时保证依赖调用方。
-- 状态升级：普通升级需要连续两次候选确认；降级需要五次确认；人工紧急覆盖可直接 L4。
-- L4 触发：分数至少 80 且信用/流动性模块任一至少 85 可产生 L4 候选；但状态机记录不含 trigger_reason。应将候选原因写入 `candidate_reasons` 或等价字段，并持久化到状态历史和日报。
-- 边界测试：现有测试覆盖缺失值、完整覆盖、低覆盖、状态机和紧急覆盖，但没有明确的 79.9/80、84.9/85、信用/流动性 84.9/85 等边界断言。
-
-## P3 — 回测准备状态
-
-当前仓库没有可审计的历史发布版本数据集或历史 CRS 日分数档案。FRED 适配器请求截至日期内的当前 CSV，未请求或存档逐日实时 vintage；OAS 可见历史又受三年限制。Yahoo 适配器取 10 年当前供应商历史，也没有历史检索时点/修订信息。房地产序列是当前 vintage 的美国月度数据。
-
-`evaluate_crisis_backtest` 要求调用方提供 `pit_verified` 布尔值，但代码没有验证支持该标记的来源清单、vintage 文件或数据哈希。因此，它是一个输入拒绝门，不是 PIT 来源证明机制。任何没有真实历史发布版本、时间戳证据及可审计授权的数据都不能标成 PIT_VERIFIED。当前没有足够证据声明 2008、2020、2022 的 CRS 回测可行或已经完成。
-
-P3 后续交付应先给出历史可用性矩阵：逐源记录可核实的历史起止日期、发布时间证据、修订/vintage 属性、授权限制和 PIT 可用性。当前没有实际拉取与核对数据集，所以矩阵中的精确起止日期应标注“未现场核验”，不能推测补齐。
-
-## 验证记录
-
-- 本轮执行：`python -m compileall -q sentinel tests local_crs_portfolio.py`；`python -m unittest discover -s tests -v`
-- 结果：55 项测试通过；离线单元/模拟测试，不覆盖实时数据服务可用性、许可证合规或模型预测能力。
-- 审计基线分支当前无已返回的 CI 状态记录；本地测试通过不等同于 GitHub Actions 对该提交的验证。
-
-## 第一轮审计后续建议（待确认）
-
-1. P0：为 CLI/报告增加明确 pipeline 与 score 状态；工作流生成结构化 Actions Summary，并确保 DATA_INSUFFICIENT 不呈现为 SCORE_PUBLISHED。
-2. P1：在不接入未授权/未验证供应商前，先落实关键指标状态清单、关键缺失发布门与“代理/原指标”分离。
-3. P2：以精确覆盖率比较门槛；记录 L4 触发类型；补齐用户列出的数值边界测试。
-4. P3：编制三份数据/回测文档，并将 PIT 标记从任意布尔输入提升为可审计证据引用；先盘点数据可得性，再决定是否有条件做事件回测。
-5. 完成上述修改并保存完整测试日志后，再评估是否创建 PR。当前不创建 PR、不合并，也不修改 main。
-
-
-## 第二阶段实施结果（2026-11-18）
-
-### 已实施
-
-- **P0**：成功写出诊断报告时 CLI 返回 0；运行异常返回 1；数据不足通过 `score_status=DATA_INSUFFICIENT` 表示，满足全部发布门时为 `SCORE_PUBLISHED`。报告标记 `pipeline_status=PIPELINE_SUCCESS`。GitHub Actions Summary 展示覆盖率、关键缺失模块/指标、评分是否发布、分数、状态、L4原因及缺失/代理来源。CLI、测试/安装或摘要流程失败时在 Summary 显示 `PIPELINE_FAILED`。
-- **P1**：新增关键指标发布门：股票广度、MOVE、Repo 百分位、HY OAS、IG OAS 缺一不可；覆盖率门槛比较未舍入值。来源/派生指标保留来源、观察/发布/检索时间、质量和许可状态；MISSING、PROXY_ONLY、US_ONLY 和历史受限来源单独列出。完整矩阵见 `CRS_DATA_COVERAGE_MATRIX.md`。
-- **P2**：状态历史保存 L4 候选原因（信用模块、流动性模块、人工紧急覆盖）。新增 79.9/80、84.9/85、关键指标缺失及 as-of 前历史序列测试。百分位输入在特征构建阶段按 as-of 过滤，并排除当前观测。
-- **P3**：回测输入必须包含决策时点、来源、观察/发布/检索时间、vintage ID、SHA-256与授权状态；裸 `pit_verified=true` 会被拒绝。可用性和危机窗口判定见 `CRS_BACKTEST_READINESS.md`。该检查验证证据结构与时间顺序，不证明调用方声明的哈希/授权真实有效。
-
-### 文件修改及原因
-
-| 文件 | 修改原因 |
+| 文件 | 修改理由 |
 |---|---|
-| `.github/workflows/crs-daily.yml` | 让数据不足与流程故障在 Actions Summary 中可见，修正绿色成功的歧义 |
-| `nq_sentinel_pro/sentinel/crs/actions_summary.py` | 新增运行摘要渲染器，显示分数门状态、缺失指标和来源失败 |
-| `cli.py`、`runner.py`、`report.py` | 明确流程/评分两种状态；错误返回失败；把缺失项和来源血缘写入报告 |
-| `collector.py`、`fred.py`、`metrics.py`、`manual.py`、`storage.py` | 补齐运行级来源、观察/发布/检索时间、质量和许可状态；登记未接入/代理指标 |
-| `config.py`、`crs_v1.json`、`engine.py` | 将关键指标列为完整评分必需输入；不再使用显示舍入值判定85%门槛 |
-| `backtest.py` | 拒绝无来源时间、vintage、哈希或授权状态的历史样本 |
-| `tests/test_crs_engine.py` | 增加状态、覆盖率、关键缺失、来源元数据、PIT拒绝与CLI状态测试 |
-| `docs/CRS_DATA_COVERAGE_MATRIX.md` | 逐项记录来源、范围证据、发布时间、修订和许可限制 |
-| `docs/CRS_BACKTEST_READINESS.md` | 记录2008/2020/2022的PIT准备度，明确不伪造历史结果 |
-| `docs/CRS_PHASE2_TEST_LOG.txt` | 保存本次编译与离线测试完整运行记录 |
-| `nq_sentinel_pro/CRS_README.md` | 更新CLI退出码、运行状态和新评分发布门说明 |
-
-### 验证与剩余边界
-
-- `python -m compileall -q sentinel tests local_crs_portfolio.py`：通过。
-- `python -m unittest discover -s tests -v`：65 项通过（见完整日志文件）。
-- 未完成实时来源稳定性验证；无实际广度、MOVE、Repo连续序列或CDX适配器，因此默认数据链可能输出 `DATA_INSUFFICIENT`，这是关键输入门的预期结果。
-- 未完成2008/2020/2022点时回测、授权独立核验或样本外验证。没有修改 NQ-Sentinel 原有权重/评分，没有上传个人持仓，没有创建 PR，也没有合并。
+| `.github/workflows/crs-daily.yml` | 区分流程失败与数据不足，摘要缺失时失败并上传诊断产物 |
+| `nq_sentinel_pro/sentinel/crs/cli.py` | CLI退出码与流程状态一致 |
+| `nq_sentinel_pro/sentinel/crs/actions_summary.py` | Summary字段及来源失败明细 |
+| `nq_sentinel_pro/sentinel/crs/collector.py`、`fred.py`、`prices.py` | 来源元数据、缺失状态与代理属性 |
+| `nq_sentinel_pro/sentinel/crs/config.py`、`crs_v1.json`、`engine.py` | 关键指标门槛和原始覆盖率门槛 |
+| `nq_sentinel_pro/sentinel/crs/metrics.py`、`manual.py`、`storage.py` | 保留派生数据来源时间及质量/许可元数据 |
+| `nq_sentinel_pro/sentinel/crs/report.py`、`runner.py` | 显示数据状态、来源诊断和状态机原因 |
+| `nq_sentinel_pro/sentinel/crs/backtest.py` | 拒绝缺少结构化点时证据的回测样本 |
+| `nq_sentinel_pro/sentinel/crs/state.py` | 修正L4评分触发依赖并记录信用/流动性原因码 |
+| `nq_sentinel_pro/tests/test_crs_engine.py` | 增加覆盖边界、状态机、来源、CLI和PIT测试 |
+| `docs/CRS_DATA_COVERAGE_MATRIX.md` | 逐源列出可用性、限制及接入状态 |
+| `docs/CRS_BACKTEST_READINESS.md` | 列出历史可用性与PIT阻断证据 |
+| `docs/CRS_PHASE2_TEST_LOG.txt` | 保存本轮测试实际结果 |
+| `docs/CRS_PHASE2_AUDIT.md` | 汇总审计结论、范围、限制与修改理由 |

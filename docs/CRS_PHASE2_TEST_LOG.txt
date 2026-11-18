@@ -1,12 +1,3 @@
-CRS Phase 2 verification log
-Date: 2026-11-18 (Asia/Shanghai)
-Repository branch: feature/crs-v1.0
-Source commit baseline: fe9a543
-
-Command: python -m compileall -q sentinel tests local_crs_portfolio.py
-Compile exit code: 0
-
-Command: python -m unittest discover -s tests -v
 test_actions_summary_separates_pipeline_and_score_status (test_crs_engine.CRSEngineTests.test_actions_summary_separates_pipeline_and_score_status) ... ok
 test_backtest_counts_event_detection_only_for_verified_complete_scores (test_crs_engine.CRSEngineTests.test_backtest_counts_event_detection_only_for_verified_complete_scores) ... ok
 test_backtest_requires_point_in_time_proof (test_crs_engine.CRSEngineTests.test_backtest_requires_point_in_time_proof) ... ok
@@ -24,6 +15,7 @@ test_fred_feature_changes_convert_percentage_points_to_basis_points (test_crs_en
 test_fred_oas_series_is_kept_in_source_units_before_conversion (test_crs_engine.CRSEngineTests.test_fred_oas_series_is_kept_in_source_units_before_conversion) ... ok
 test_group_cap_prevents_correlated_metrics_stacking (test_crs_engine.CRSEngineTests.test_group_cap_prevents_correlated_metrics_stacking) ... ok
 test_housing_feature_preserves_fred_source_quality_and_retrieval (test_crs_engine.CRSEngineTests.test_housing_feature_preserves_fred_source_quality_and_retrieval) ... ok
+test_l4_credit_or_liquidity_trigger_does_not_require_manual_override (test_crs_engine.CRSEngineTests.test_l4_credit_or_liquidity_trigger_does_not_require_manual_override) ... ok
 test_l4_threshold_edges_and_reason_codes (test_crs_engine.CRSEngineTests.test_l4_threshold_edges_and_reason_codes) ... ok
 test_liquidity_alert_requires_both_sync_selloff_and_funding_stress (test_crs_engine.CRSEngineTests.test_liquidity_alert_requires_both_sync_selloff_and_funding_stress) ... ok
 test_local_private_overlay_calculates_only_user_supplied_stress (test_crs_engine.CRSEngineTests.test_local_private_overlay_calculates_only_user_supplied_stress) ... ok
@@ -74,7 +66,7 @@ test_private_unknown_not_cash (test_system.TestSentinel.test_private_unknown_not
 test_reject_path_traversal_date (test_system.TestSentinel.test_reject_path_traversal_date) ... ok
 
 ----------------------------------------------------------------------
-Ran 65 tests in 1.947s
+Ran 66 tests in 1.895s
 
 OK
 

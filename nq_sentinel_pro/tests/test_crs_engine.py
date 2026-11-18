@@ -184,6 +184,16 @@ class CRSEngineTests(unittest.TestCase):
         self.assertEqual(transition_state("INSUFFICIENT_DATA", hist)["state"], "INSUFFICIENT_DATA")
         self.assertEqual(transition_state("INSUFFICIENT_DATA", [], emergency_market_failure=True)["state"], "L4")
 
+    def test_l4_credit_or_liquidity_trigger_does_not_require_manual_override(self):
+        hot = {"score":80,"modules":{"credit":{"score":85},"liquidity":{"score":20}}}
+        self.assertEqual(candidate_state(hot), "L4")
+        self.assertEqual(candidate_reasons(hot), ["CREDIT_MODULE_SCORE"])
+        self.assertEqual(transition_state("L4", [], candidate_reason_codes=candidate_reasons(hot))["state"], "L0")
+        confirmed = transition_state("L4", [{"state":"L0","raw_candidate":"L4"}],
+                                     candidate_reason_codes=candidate_reasons(hot))
+        self.assertEqual(confirmed["state"], "L4")
+        self.assertEqual(confirmed["candidate_reason_codes"], ["CREDIT_MODULE_SCORE"])
+
     def test_liquidity_alert_requires_both_sync_selloff_and_funding_stress(self):
         f = {"stock_return_20d":record(-0.1), "bond_return_20d":record(-0.06), "gold_return_20d":record(-0.08)}
         alert = evaluate_alerts(f, {})
