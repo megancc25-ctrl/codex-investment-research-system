@@ -86,4 +86,3 @@ def save_health_snapshot(path, asof, source_status, limit=WINDOW_RUNS):
         runs[-1] = {"asof": asof, "source_status": source_status}
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(runs[-limit:], ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
