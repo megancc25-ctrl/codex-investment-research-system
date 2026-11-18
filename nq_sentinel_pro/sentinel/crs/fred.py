@@ -12,6 +12,8 @@ SERIES = {
     "mortgage30y": "MORTGAGE30US", "cpi": "CPIAUCSL", "stlfsi": "STLFSI4",
 }
 LICENSE_RESTRICTED = {"hy_oas", "ig_oas", "ccc_oas"}
+# Populate only after the series owner's storage and internal-use terms have been reviewed.
+CACHE_LICENSE_APPROVALS = {}
 BASE_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv"
 API_URL = "https://api.stlouisfed.org/fred/series/observations"
 
@@ -101,13 +103,16 @@ def fetch_series(series_key, asof, opener=None, timeout=15, retries=2, api_key=N
     if not values:
         raise ValueError("No FRED observation on or before as-of date")
     retrieved = datetime.now(timezone.utc).isoformat()
+    license_status = ("RESTRICTED" if series_key in LICENSE_RESTRICTED else
+                      CACHE_LICENSE_APPROVALS.get(series_key, "REVIEW_REQUIRED"))
     return {
         "series_key": series_key, "series_id": series_id, "values": values,
         "source": f"https://fred.stlouisfed.org/series/{series_id}",
         "source_kind": source_kind,
         "vintage_date": asof if api_key else None,
         "quality": "LICENSE_RESTRICTED" if series_key in LICENSE_RESTRICTED else "CURRENT_VINTAGE",
-        "license_status": "RESTRICTED" if series_key in LICENSE_RESTRICTED else "REVIEW_REQUIRED",
+        "license_status": license_status,
+        "cache_authorization": license_status if license_status == "APPROVED_FOR_INTERNAL_CACHE" else "NOT_APPROVED",
         "observation_date": max(values), "published_at": None, "retrieved_at": retrieved,
         "raw_sha256": hashlib.sha256(raw).hexdigest(),
         "unit_note": "FRED source units are retained; OAS series are percent, convert to bp before scoring.",

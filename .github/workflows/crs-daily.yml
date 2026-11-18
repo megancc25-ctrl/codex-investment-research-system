@@ -27,11 +27,20 @@ jobs:
           python-version: '3.11'
       - uses: actions/cache@v4
         with:
-          path: |
-            nq_sentinel_pro/data/crs/state.json
-            nq_sentinel_pro/data/crs/source_health.json
+          path: nq_sentinel_pro/data/crs/state.json
           key: crs-state-${{ github.ref_name }}-${{ github.run_id }}
           restore-keys: crs-state-${{ github.ref_name }}-
+      - name: Restore and persist license-filtered FRED cache
+        uses: actions/cache@v4
+        with:
+          path: nq_sentinel_pro/data/crs/fred_cache.duckdb
+          key: crs-fred-cache-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: crs-fred-cache-${{ github.ref_name }}-
+      - uses: actions/cache@v4
+        with:
+          path: nq_sentinel_pro/data/crs/source_health.json
+          key: crs-source-health-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: crs-source-health-${{ github.ref_name }}-
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
       - name: Compile and run offline tests

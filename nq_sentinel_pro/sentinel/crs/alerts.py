@@ -1,7 +1,8 @@
 """Independent combination alerts. Alerts are not added a second time to the weighted score."""
+from .feature_status import read_feature
+
 def _get(features, key):
-    item = features.get(key)
-    return item.get("value") if isinstance(item, dict) else item
+    return read_feature(features, key)[1]
 
 def _yes(value):
     return value is not None and bool(value)
@@ -29,10 +30,10 @@ def evaluate_alerts(features, metrics=None):
               "YELLOW" if n_credit >= 2 else
               "CLEAR" if all(x is not None for x in (hy_change, ig_level, eq_loss)) else "INSUFFICIENT_DATA")
 
-    sync_value = _get(features, "synchronized_three_asset_down_20d")
-    severe_value = _get(features, "synchronized_three_asset_loss_5pct")
-    sync = bool(sync_value) if sync_value is not None else False
-    severe_sync = bool(severe_value) if severe_value is not None else False
+    sync_status, sync_value = read_feature(features, "synchronized_three_asset_down_20d", bool)
+    severe_status, severe_value = read_feature(features, "synchronized_three_asset_loss_5pct", bool)
+    sync = sync_value if sync_status == "AVAILABLE" else False
+    severe_sync = severe_value if severe_status == "AVAILABLE" else False
     funding_keys = ("repo_extreme", "funding_market_failure", "margin_stress")
     funding_missing = [key for key in funding_keys
                        if metrics.get(key) is not True and metrics.get(key) is not False]
@@ -45,11 +46,11 @@ def evaluate_alerts(features, metrics=None):
     liquidity_data_limits = []
     if funding_missing:
         liquidity_data_limits.append("Funding-side inputs unavailable: " + ", ".join(funding_missing) + ".")
-    if sync_value is None:
-        liquidity_data_limits.append("Three-asset synchronization is unavailable; the combined liquidity alert cannot be determined.")
+    if sync_status != "AVAILABLE":
+        liquidity_data_limits.append(f"Three-asset synchronization status is {sync_status}; the combined liquidity alert cannot be determined.")
     liquidity = ("RED_CANDIDATE" if sync and funding_stress else
                  "CROSS_ASSET_SELL_OFF" if sync else
-                 "INSUFFICIENT_DATA" if sync_value is None else
+                 "INSUFFICIENT_DATA" if sync_status != "AVAILABLE" else
                  "FUNDING_STRESS_ONLY" if funding_stress else
                  "INSUFFICIENT_DATA" if funding_missing else "CLEAR")
 
@@ -75,6 +76,8 @@ def evaluate_alerts(features, metrics=None):
                         "evidence": [k for k, ok in zip(("hy_widening", "ig_wide", "cdx_hy_widening", "equity_down"), credit_flags) if ok]},
         "liquidity_crisis": {"state": liquidity, "synchronized_three_asset_loss": sync,
                              "severe_synchronized_loss": severe_sync,
+                             "synchronization_status": sync_status,
+                             "severe_synchronization_status": severe_status,
                              "funding_status": funding_status,
                              "funding_stress_confirmed": funding_stress,
                              "funding_stress_inputs": funding_stress_inputs,

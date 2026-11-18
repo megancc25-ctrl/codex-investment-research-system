@@ -44,7 +44,7 @@ FRED官方文档说明，`fred/series/observations` 支持JSON、`realtime_start
 - 成功/缓存采集中 `published_at` 缺失率；
 - 最新数据质量、授权状态和失败原因。
 
-GitHub Actions缓存单独包含状态机JSON与来源健康JSON；不会缓存包含受限OAS数据的DuckDB。新健康指标没有被用于改变评分。
+在第八阶段提交时，GitHub Actions只缓存状态机JSON与来源健康JSON，没有持久化DuckDB；这是第九阶段复核确认的跨运行缺口。后续第九阶段改为独立、许可过滤的FRED缓存数据库与独立Actions缓存键。新健康指标没有被用于改变评分。
 
 ## 历史PIT准备度
 
@@ -63,7 +63,7 @@ FRED vintage日期只能表达数据在某个日期版本下的值，不证明�
 ## 验证记录
 
 - `compileall`：通过。
-- 完整本地离线 `unittest`：104项通过（详见 `CRS_PHASE8_TEST_LOG.txt`）。
+- 完整本地离线 `unittest`：105项通过（详见 `CRS_PHASE8_TEST_LOG.txt`）。
 - 新增第八阶段测试：9项，通过重试与密钥脱敏、API as-of参数、缓存回退/新鲜度、跨vintage保存、30期健康统计、三种报告格式保留等边界。
 - 实时FRED探测：单次CSV成功、19源短超时探测失败；这是网络诊断，不是单元测试，也不是完整CRS运行。
 - GitHub Actions远端CI：本轮未触发、未验证。不能将本地通过称作远端CI通过。
@@ -93,3 +93,9 @@ FRED vintage日期只能表达数据在某个日期版本下的值，不证明�
 - 需要在GitHub仓库设置 `FRED_API_KEY` Secret 后，才能验证官方API运行；密钥不应写入仓库、报告或聊天。
 - 远端CI、Actions运行、API密钥路径真实取数、每日稳定成功率、2022/2020/2008 PIT数据集及危机回测仍未验证。
 - CRS保持 `PROVISIONAL_RESEARCH_ONLY`。
+
+## 第九阶段复核补充
+
+第九阶段复核确认：第八阶段时GitHub Actions未持久化DuckDB，且本地缓存读取没有按许可状态过滤。随后增加的第九阶段修复使用独立的 `fred_cache.duckdb` 和独立Actions缓存键；只接受显式标注 `APPROVED_FOR_INTERNAL_CACHE` 且来源ID、来源URL、SHA-256、检索时间与数据日期通过校验的序列。当前 `CACHE_LICENSE_APPROVALS` 为空，19个FRED系列不会被云端缓存。OAS受限序列固定拒绝。
+
+第九阶段还将同步下跌告警的状态和值解析统一到 `feature_status.read_feature`。第八阶段测试日志的105项计数由本地复跑确认；第九阶段新增测试及其完整日志见 `CRS_PHASE9_TEST_LOG.txt`，历史危机数据和远端运行仍未验收。

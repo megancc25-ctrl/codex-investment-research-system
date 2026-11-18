@@ -42,6 +42,7 @@ def collect(asof, fred_fetcher=fetch_series, price_fetcher=fetch_prices, fred_ca
                                             "retrieved_at": item.get("retrieved_at"),
                                             "quality": item["quality"],
                                             "license_status": item.get("license_status", "REVIEW_REQUIRED"),
+                                            "cache_authorization": item.get("cache_authorization", "NOT_APPROVED"),
                                             "raw_sha256": item["raw_sha256"]}
         except Exception as exc:
             cache_item = (fred_cache or {}).get(key)
@@ -56,6 +57,7 @@ def collect(asof, fred_fetcher=fetch_series, price_fetcher=fetch_prices, fred_ca
                                              "retrieved_at": cached.get("retrieved_at"),
                                              "quality": cached.get("quality", "UNKNOWN"),
                                              "license_status": cached.get("license_status", "UNKNOWN"),
+                                             "cache_authorization": cached.get("cache_authorization", "UNKNOWN"),
                                              "raw_sha256": cached.get("raw_sha256"),
                                              "cache_used": True, "cache_age_days": cached.get("cache_age_days"),
                                              "cache_max_age_days": cached.get("cache_max_age_days"),

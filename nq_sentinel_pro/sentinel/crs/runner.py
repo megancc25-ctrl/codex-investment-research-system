@@ -9,10 +9,12 @@ from .collector import collect
 from .config import CONFIG_SHA256
 from .decisions import decision_for_state
 from .engine import score_snapshot
+from .feature_status import read_feature
 from .health import load_health_snapshots, save_health_snapshot, summarize_source_health
 from .report import write_reports
 from .state import STATE_LABELS, candidate_reasons, candidate_state, transition_state
-from .storage import connect, export_parquet, latest_reports, load_fred_cache, save_collected, save_report
+from .storage import (connect, connect_fred_cache, export_parquet, latest_reports,
+                      load_fred_cache, save_collected, save_fred_cache, save_report)
 
 def _evidence(score_result, features, alerts):
     supporting, against, component_evidence, data_limits = [], [], [], []
@@ -60,21 +62,17 @@ def _evidence(score_result, features, alerts):
         data_limits.append("Credit risk confirmation is INSUFFICIENT_DATA; missing credit inputs cannot establish either elevated or stable credit risk.")
     else:
         data_limits.append(f"Credit risk alert state {credit_state} is unavailable or unrecognized; no credit-risk conclusion can be drawn.")
-    sync = features.get("synchronized_three_asset_down_20d")
+    sync_status, sync_value = read_feature(features, "synchronized_three_asset_down_20d", bool)
     sync_no_selloff_available = False
-    if not isinstance(sync, dict):
-        data_limits.append("Three-asset synchronization is MISSING; available common dates cannot be assessed.")
+    if sync_status == "AVAILABLE" and sync_value is True:
+        supporting.append("A simultaneous 20-day decline in stocks, bonds and gold is confirmed on aligned common dates.")
+    elif sync_status == "AVAILABLE" and sync_value is False:
+        component_evidence.append("No simultaneous 20-day decline in stocks, bonds and gold was confirmed within the valid aligned common-date sample.")
+        sync_no_selloff_available = True
+    elif sync_status == "INSUFFICIENT_DATA":
+        data_limits.append("Three-asset synchronization is INSUFFICIENT_DATA; the common-date sample is too short to determine whether a simultaneous decline occurred.")
     else:
-        status = str(sync.get("status") or ("AVAILABLE" if sync.get("value") is not None else "MISSING")).upper()
-        if status == "AVAILABLE" and sync.get("value") is True:
-            supporting.append("A simultaneous 20-day decline in stocks, bonds and gold is confirmed on aligned common dates.")
-        elif status == "AVAILABLE" and sync.get("value") is False:
-            component_evidence.append("No simultaneous 20-day decline in stocks, bonds and gold was confirmed within the valid aligned common-date sample.")
-            sync_no_selloff_available = True
-        elif status == "INSUFFICIENT_DATA":
-            data_limits.append("Three-asset synchronization is INSUFFICIENT_DATA; the common-date sample is too short to determine whether a simultaneous decline occurred.")
-        else:
-            data_limits.append("Three-asset synchronization is MISSING; available common dates cannot be assessed.")
+        data_limits.append(f"Three-asset synchronization is {sync_status}; available common dates cannot be assessed.")
     if liquidity_clear_claim and sync_no_selloff_available:
         against.append("No simultaneous three-asset sell-off was confirmed and all configured repo, funding and margin event flags were explicitly reported normal.")
     elif liquidity_clear_claim:
@@ -85,10 +83,30 @@ def _evidence(score_result, features, alerts):
 def run_report(asof, database, output, parquet_directory=None, manual=None,
                emergency_market_failure=False, nq_report=None, state_history_file=None):
     con = connect(database)
+    cache_path = Path(database).expanduser().parent / "fred_cache.duckdb"
+    cache_con = connect_fred_cache(cache_path)
     try:
-        fred_cache = load_fred_cache(con, asof)
+        fred_cache, cache_diagnostics = load_fred_cache(cache_con, asof)
         collection = collect(asof, fred_cache=fred_cache) if fred_cache else collect(asof)
+        cache_save_summary = save_fred_cache(cache_con, collection)
+        fred_statuses = {key: item for key, item in collection["source_status"].items()
+                         if key.startswith("fred:")}
+        collection["source_collection_summary"] = {
+            "fred_expected_count": len(fred_statuses),
+            "live_success_count": sum(item.get("status") == "AVAILABLE" and
+                                       item.get("fetch_status", "SUCCESS") == "SUCCESS"
+                                       for item in fred_statuses.values()),
+            "cache_fallback_count": sum(item.get("status") == "AVAILABLE_CACHED"
+                                         for item in fred_statuses.values()),
+            "cache_expired_count": cache_diagnostics["expired_series_count"],
+            "cache_ineligible_count": (cache_diagnostics["ineligible_series_count"] +
+                                        cache_save_summary["ineligible_series_count"]),
+            "cache_saved_count": cache_save_summary["saved_series_count"],
+            "missing_count": sum(item.get("status") == "MISSING" for item in fred_statuses.values()),
+            "cache_database": "SEPARATE_LICENSE_FILTERED_DUCKDB",
+        }
     except Exception:
+        cache_con.close()
         con.close()
         raise
     if manual:
@@ -143,6 +161,7 @@ def run_report(asof, database, output, parquet_directory=None, manual=None,
             "decision": decision_for_state(state["state"]),
             "evidence": _evidence(score, collection["features"], alerts),
             "source_status": collection["source_status"],
+            "source_collection_summary": collection["source_collection_summary"],
             "source_health": source_health,
             "source_count": {"expected_fred_series": sum(k.startswith("fred:") for k in collection["source_status"]),
                              "available_features": len(collection["features"])},
@@ -173,4 +192,5 @@ def run_report(asof, database, output, parquet_directory=None, manual=None,
         paths = write_reports(report, output)
         return report, paths
     finally:
+        cache_con.close()
         con.close()

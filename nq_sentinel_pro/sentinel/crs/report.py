@@ -82,6 +82,17 @@ def render_markdown(report):
                   item.get("observation_lag_days"), item.get("published_at_missing_rate_pct"),
                   item.get("latest_quality"), item.get("latest_license_status"), item.get("latest_reason"))
         lines.append("| " + " | ".join(str(value if value is not None else "—").replace("|", "\\|").replace("\n", " ") for value in values) + " |")
+    collection = report.get("source_collection_summary", {})
+    if collection:
+        lines += ["", "### FRED collection and cache counts", "",
+                  f"- Expected series: **{collection.get('fred_expected_count', 0)}**",
+                  f"- Live successes: **{collection.get('live_success_count', 0)}**",
+                  f"- Cache fallbacks: **{collection.get('cache_fallback_count', 0)}**",
+                  f"- Expired cache series: **{collection.get('cache_expired_count', 0)}**",
+                  f"- Ineligible cache series: **{collection.get('cache_ineligible_count', 0)}**",
+                  f"- Series persisted to cache: **{collection.get('cache_saved_count', 0)}**",
+                  f"- Missing series: **{collection.get('missing_count', 0)}**",
+                  f"- Cache store: **{collection.get('cache_database', 'UNKNOWN')}**"]
     lines += ["", "## Governance", ""]
     lines.extend(f"- {note}" for note in score.get("notes", []))
     lines += ["", "No historical crisis validation is implied by this daily report."]

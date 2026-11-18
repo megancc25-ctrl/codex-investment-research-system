@@ -9,7 +9,7 @@ from sentinel.crs.collector import collect
 from sentinel.crs.fred import fetch_series
 from sentinel.crs.health import save_health_snapshot, summarize_source_health
 from sentinel.crs.report import write_reports
-from sentinel.crs.storage import connect, load_fred_cache, save_collected
+from sentinel.crs.storage import connect, connect_fred_cache, load_fred_cache, save_collected, save_fred_cache
 
 
 class _Response:
@@ -83,6 +83,7 @@ class CRSPhase8Tests(unittest.TestCase):
             "values": {"2026-11-17": 4.1}, "observation_date": "2026-11-17",
             "source": "https://fred.stlouisfed.org/series/DGS10", "source_kind": "FRED_CURRENT_VINTAGE_CSV",
             "quality": "CURRENT_VINTAGE", "license_status": "REVIEW_REQUIRED",
+            "cache_authorization": "NOT_APPROVED",
             "retrieved_at": "2026-11-17T23:00:00+00:00", "raw_sha256": "a" * 64,
             "cached": True, "cache_age_days": 0, "cache_max_age_days": 14}}
 
@@ -96,21 +97,24 @@ class CRSPhase8Tests(unittest.TestCase):
         self.assertEqual(result["fred"]["ust10y"]["values"]["2026-11-17"], 4.1)
         self.assertIn("timed out", result["source_status"]["fred:ust10y"]["reason"])
 
-    def test_duckdb_cache_round_trip_only_returns_fresh_observations(self):
+    def test_separate_duckdb_cache_round_trip_only_returns_fresh_observations(self):
         with tempfile.TemporaryDirectory() as tmp:
-            con = connect(Path(tmp) / "crs.duckdb")
+            con = connect_fred_cache(Path(tmp) / "fred_cache.duckdb")
             try:
-                save_collected(con, {"asof": "2026-11-18", "fred": {"ust10y": {
+                collection = {"asof": "2026-11-18", "fred": {"ust10y": {
                     "series_id": "DGS10", "values": {"2026-11-17": 4.1},
                     "source": "https://fred.stlouisfed.org/series/DGS10",
                     "source_kind": "FRED_CURRENT_VINTAGE_CSV", "quality": "CURRENT_VINTAGE",
-                    "license_status": "REVIEW_REQUIRED", "published_at": None,
+                    "license_status": "APPROVED_FOR_INTERNAL_CACHE",
+                    "cache_authorization": "APPROVED_FOR_INTERNAL_CACHE", "published_at": None,
                     "retrieved_at": "2026-11-17T20:00:00+00:00", "raw_sha256": "a" * 64}},
-                    "prices": {}, "features": {}})
-                cache = load_fred_cache(con, "2026-11-18")
+                    "source_status": {"fred:ust10y": {"fetch_status": "SUCCESS"}}}
+                save_fred_cache(con, collection)
+                cache, _diagnostics = load_fred_cache(con, "2026-11-18")
                 self.assertEqual(cache["ust10y"]["values"], {"2026-11-17": 4.1})
                 self.assertEqual(cache["ust10y"]["cache_age_days"], 1)
-                self.assertNotIn("ust10y", load_fred_cache(con, "2026-12-10"))
+                stale, _diagnostics = load_fred_cache(con, "2026-12-10")
+                self.assertNotIn("ust10y", stale)
             finally:
                 con.close()
 
