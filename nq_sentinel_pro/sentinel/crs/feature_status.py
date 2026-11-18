@@ -28,4 +28,3 @@ def read_feature(features, key, expected_type=None):
             return "UNKNOWN", None
         return "AVAILABLE", value
     return state, None
-
