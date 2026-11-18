@@ -18,7 +18,7 @@ def load_manual_evidence(path, asof):
     if payload.get("asof") != asof:
         raise ValueError("Manual evidence asof must match the report date")
     cutoff = datetime.fromisoformat(asof + "T23:59:59+00:00")
-    features, events = {}, {}
+    features, events, event_evidence = {}, {}, {}
     for key, record in payload.get("features", {}).items():
         if key not in RULES:
             raise ValueError(f"Unsupported CRS feature: {key}")
@@ -52,7 +52,14 @@ def load_manual_evidence(path, asof):
         if published > retrieved or retrieved > cutoff or not record.get("source_url", "").startswith("https://"):
             raise ValueError("Event evidence needs valid time order and an HTTPS source")
         events[key] = True
-    return {"features": features, "events": events,
+        observation_date = record.get("observation_date")
+        if observation_date is not None and date.fromisoformat(observation_date) > date.fromisoformat(asof):
+            raise ValueError("Manual event has a future observation date")
+        event_evidence[key] = {"source": record["source_url"], "observation_date": observation_date,
+                               "published_at": published.isoformat(), "retrieved_at": retrieved.isoformat(),
+                               "quality": record.get("quality", "MANUAL_EVENT"),
+                               "license_status": record.get("license_status", "REVIEW_REQUIRED")}
+    return {"features": features, "events": events, "event_evidence": event_evidence,
             "source_status": {"manual_evidence": {"status": "AVAILABLE", "asof": asof,
                              "feature_count": len(features), "event_count": len(events),
                              "note": "Manual evidence is attributable only to its supplied public source."}}}

@@ -74,7 +74,7 @@ test_private_unknown_not_cash (test_system.TestSentinel.test_private_unknown_not
 test_reject_path_traversal_date (test_system.TestSentinel.test_reject_path_traversal_date) ... ok
 
 ----------------------------------------------------------------------
-Ran 65 tests in 1.926s
+Ran 65 tests in 1.947s
 
 OK
 

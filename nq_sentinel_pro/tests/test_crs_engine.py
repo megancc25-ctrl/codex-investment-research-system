@@ -324,9 +324,15 @@ class CRSEngineTests(unittest.TestCase):
             path = Path(tmp)/"manual.json"
             payload = {"asof":"2026-11-18","features":{"move_level":{
                 "value":150,"observation_date":"2026-11-18","published_at":"2026-11-18T20:00:00Z",
-                "retrieved_at":"2026-11-18T21:00:00Z","source_url":"https://example.org","quality":"VERIFIED"}}}
+                "retrieved_at":"2026-11-18T21:00:00Z","source_url":"https://example.org","quality":"VERIFIED"}},
+                "events":{"repo_extreme":{"value":True,"observation_date":"2026-11-18",
+                  "published_at":"2026-11-18T20:00:00Z","retrieved_at":"2026-11-18T21:00:00Z",
+                  "source_url":"https://example.org/repo","license_status":"AUTHORIZED"}}}
             path.write_text(json.dumps(payload),encoding="utf-8")
-            self.assertEqual(load_manual_evidence(path,"2026-11-18")["features"]["move_level"]["value"],150)
+            loaded = load_manual_evidence(path,"2026-11-18")
+            self.assertEqual(loaded["features"]["move_level"]["value"],150)
+            self.assertEqual(loaded["event_evidence"]["repo_extreme"]["source"],"https://example.org/repo")
+            self.assertEqual(loaded["event_evidence"]["repo_extreme"]["license_status"],"AUTHORIZED")
             del payload["features"]["move_level"]["published_at"]
             path.write_text(json.dumps(payload),encoding="utf-8")
             with self.assertRaises(KeyError):

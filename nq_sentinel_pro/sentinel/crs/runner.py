@@ -37,6 +37,10 @@ def run_report(asof, database, output, parquet_directory=None, manual=None,
     if manual:
         collection["features"].update(manual["features"])
         collection["source_status"].update(manual["source_status"])
+        for key, evidence in manual.get("event_evidence", {}).items():
+            collection["source_status"][f"manual_event:{key}"] = {
+                **evidence, "status": "AVAILABLE", "source_id": key,
+            }
     event_flags = manual.get("events", {}) if manual else {}
     emergency_market_failure = emergency_market_failure or bool(event_flags.get("funding_market_failure"))
     con = connect(database)
