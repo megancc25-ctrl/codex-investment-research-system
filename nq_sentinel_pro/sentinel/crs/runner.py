@@ -14,16 +14,18 @@ from .state import STATE_LABELS, candidate_reasons, candidate_state, transition_
 from .storage import connect, export_parquet, latest_reports, save_collected, save_report
 
 def _evidence(score_result, features, alerts):
-    supporting, against, data_limits = [], [], []
+    supporting, against, component_evidence, data_limits = [], [], [], []
     for name, item in score_result["modules"].items():
         if item["score"] is not None and item["score"] >= 50:
             supporting.append(f"{name} module is elevated at {item['score']:.1f}/100 ({item['coverage_pct']:.0f}% module coverage).")
         elif item["score"] is not None and item["score"] < 25 and item["coverage_pct"] == 100:
-            against.append(f"{name} module is low at {item['score']:.1f}/100 with complete configured group coverage.")
+            component_evidence.append(f"{name} module is low at {item['score']:.1f}/100 with complete configured group coverage.")
     liquidity = alerts.get("liquidity_crisis", {})
     if not isinstance(liquidity, dict):
         liquidity = {}
     liquidity_state = liquidity.get("state", "UNKNOWN")
+    liquidity_clear_claim = (liquidity_state == "CLEAR" and
+                             liquidity.get("funding_status") == "NORMAL_CONFIRMED")
     for limit in liquidity.get("data_limits", []):
         if limit not in data_limits:
             data_limits.append(limit)
@@ -38,8 +40,8 @@ def _evidence(score_result, features, alerts):
                 data_limits.append("Three-asset sell-off is confirmed, but funding-side inputs are missing: " + ", ".join(missing) + "; the event cannot be classified as a liquidity crisis.")
             else:
                 data_limits.append("Three-asset sell-off is confirmed, but repo, funding or margin status is incomplete; the event cannot be classified as a liquidity crisis.")
-    elif liquidity_state == "CLEAR" and liquidity.get("funding_status") == "NORMAL_CONFIRMED":
-        against.append("No simultaneous three-asset sell-off was confirmed and all configured repo, funding and margin event flags were explicitly reported normal.")
+    elif liquidity_clear_claim:
+        pass  # Cross-check the alert against the actual synchronization feature below.
     else:
         if liquidity.get("funding_stress_confirmed"):
             supporting.append("A funding-side anomaly is confirmed, but the available cross-asset synchronization data do not establish the combined liquidity-crisis condition.")
@@ -48,7 +50,7 @@ def _evidence(score_result, features, alerts):
     credit_alert = alerts.get("credit_risk")
     credit_state = credit_alert.get("state", "UNKNOWN") if isinstance(credit_alert, dict) else "MISSING"
     if credit_state == "CLEAR":
-        against.append("Credit risk combination alert is clear on the available HY/IG spread and equity inputs.")
+        component_evidence.append("Credit risk combination alert is clear on the available HY/IG spread and equity inputs.")
     elif credit_state == "YELLOW":
         supporting.append("Credit risk combination alert is YELLOW: a watch-level combination is present, but the alert is not confirmed at RED_CANDIDATE level.")
     elif credit_state in ("RED_CANDIDATE", "SEVERE_WATCH"):
@@ -58,6 +60,7 @@ def _evidence(score_result, features, alerts):
     else:
         data_limits.append(f"Credit risk alert state {credit_state} is unavailable or unrecognized; no credit-risk conclusion can be drawn.")
     sync = features.get("synchronized_three_asset_down_20d")
+    sync_no_selloff_available = False
     if not isinstance(sync, dict):
         data_limits.append("Three-asset synchronization is MISSING; available common dates cannot be assessed.")
     else:
@@ -65,12 +68,18 @@ def _evidence(score_result, features, alerts):
         if status == "AVAILABLE" and sync.get("value") is True:
             supporting.append("A simultaneous 20-day decline in stocks, bonds and gold is confirmed on aligned common dates.")
         elif status == "AVAILABLE" and sync.get("value") is False:
-            against.append("No simultaneous 20-day decline in stocks, bonds and gold was confirmed within the valid aligned common-date sample.")
+            component_evidence.append("No simultaneous 20-day decline in stocks, bonds and gold was confirmed within the valid aligned common-date sample.")
+            sync_no_selloff_available = True
         elif status == "INSUFFICIENT_DATA":
             data_limits.append("Three-asset synchronization is INSUFFICIENT_DATA; the common-date sample is too short to determine whether a simultaneous decline occurred.")
         else:
             data_limits.append("Three-asset synchronization is MISSING; available common dates cannot be assessed.")
-    return {"supporting": supporting, "against": against, "data_limits": data_limits}
+    if liquidity_clear_claim and sync_no_selloff_available:
+        against.append("No simultaneous three-asset sell-off was confirmed and all configured repo, funding and margin event flags were explicitly reported normal.")
+    elif liquidity_clear_claim:
+        data_limits.append("Liquidity alert reports CLEAR, but no matching AVAILABLE=false synchronization feature was supplied; overall counter-evidence is withheld.")
+    return {"supporting": supporting, "against": against,
+            "component_evidence": component_evidence, "data_limits": data_limits}
 
 def run_report(asof, database, output, parquet_directory=None, manual=None,
                emergency_market_failure=False, nq_report=None, state_history_file=None):

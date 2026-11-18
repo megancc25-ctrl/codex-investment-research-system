@@ -49,6 +49,9 @@ def render_markdown(report):
     lines += ["", "## Evidence against the elevated-risk conclusion", ""]
     against = report.get("evidence", {}).get("against", [])
     lines.extend([f"- {x}" for x in against] or ["- Insufficient current data to list meaningful counter-evidence."])
+    lines += ["", "## Component observations", ""]
+    component_evidence = report.get("evidence", {}).get("component_evidence", [])
+    lines.extend([f"- {x}" for x in component_evidence] or ["- No component-level observations were recorded."])
     lines += ["", "## Evidence limits", ""]
     limits = report.get("evidence", {}).get("data_limits", [])
     lines.extend([f"- {x}" for x in limits] or ["- No additional evidence limits were recorded for this feature."])
