@@ -28,17 +28,19 @@ def save_collected(con, collection):
         for day, value in source["values"].items():
             con.execute("""INSERT OR REPLACE INTO crs_observations
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                [key, day, float(value), "source-native", source["series_id"], source["source"],
+                [key, day, float(value), "source-native", source.get("series_id") or "UNKNOWN",
+                 source.get("source") if str(source.get("source", "")).startswith("https://") else None,
                  source["source_kind"], source["quality"], source.get("published_at"), source["retrieved_at"],
                  "CURRENT_VINTAGE", source["raw_sha256"], "source-defined",
-                 json.dumps({"license_note": source["license_note"], "unit_note": source["unit_note"]})])
+                 json.dumps({"source": source.get("source") or "UNKNOWN",
+                             "license_note": source.get("license_note"), "unit_note": source.get("unit_note")})])
     for symbol, series in collection["prices"].items():
         price_meta = collection.get("price_status", {}).get(symbol, {})
         for day, value in series.items():
             con.execute("""INSERT OR REPLACE INTO crs_observations
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                [f"price:{symbol}", day, float(value), "adjusted_close_proxy", price_meta.get("source_id", f"yahoo:{symbol}"),
-                 "https://finance.yahoo.com/", "YAHOO_YFINANCE", "UNVERIFIED_VENDOR_PROXY",
+                [f"price:{symbol}", day, float(value), "adjusted_close_proxy", price_meta.get("source_id") or "UNKNOWN",
+                 price_meta.get("source_url") or None, "YAHOO_YFINANCE", "UNVERIFIED_VENDOR_PROXY",
                  price_meta.get("published_at"), price_meta.get("retrieved_at"), "VENDOR_HISTORY",
                  price_meta.get("raw_sha256"), "daily",
                  json.dumps({"proxy": True, **price_meta})])
@@ -48,15 +50,16 @@ def save_collected(con, collection):
         con.execute("""INSERT OR REPLACE INTO crs_features
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [collection["asof"], metric, float(record["value"]), "feature-native",
-             record.get("source") or "unknown", record.get("source") or "unknown",
+             record.get("source_id") or "UNKNOWN", record.get("source_url") or None,
              record.get("quality") or "UNKNOWN", int(record.get("age_days") or 0),
             json.dumps({"observation_date": record.get("observation_date"),
-                        "source_id": record.get("source_id", "UNKNOWN"),
-                        "ticker": record.get("ticker", "UNKNOWN"),
+                        "source": record.get("source") or "UNKNOWN",
+                        "source_id": record.get("source_id") or "UNKNOWN",
+                        "ticker": record.get("ticker") or "UNKNOWN",
                         "raw_sha256": record.get("raw_sha256"),
                         "published_at": record.get("published_at"),
                         "retrieved_at": record.get("retrieved_at"),
-                        "license_status": record.get("license_status", "REVIEW_REQUIRED"),
+                        "license_status": record.get("license_status") or "REVIEW_REQUIRED",
                         "stale": record.get("stale", False)})])
 
 def latest_reports(con, limit=10):

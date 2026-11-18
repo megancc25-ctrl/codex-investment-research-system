@@ -14,7 +14,7 @@ from .state import STATE_LABELS, candidate_reasons, candidate_state, transition_
 from .storage import connect, export_parquet, latest_reports, save_collected, save_report
 
 def _evidence(score_result, features, alerts):
-    supporting, against = [], []
+    supporting, against, data_limits = [], [], []
     for name, item in score_result["modules"].items():
         if item["score"] is not None and item["score"] >= 50:
             supporting.append(f"{name} module is elevated at {item['score']:.1f}/100 ({item['coverage_pct']:.0f}% module coverage).")
@@ -27,9 +27,20 @@ def _evidence(score_result, features, alerts):
             against.append("Credit risk combination alert is clear on the available HY/IG spread and equity inputs.")
         else:
             against.append("Credit confirmation is incomplete; missing data cannot be treated as stable credit.")
-    if not features.get("synchronized_three_asset_down_20d", {}).get("value", False):
-        against.append("No confirmed simultaneous 20-day decline in stocks, bonds and gold from available proxies.")
-    return {"supporting": supporting, "against": against}
+    sync = features.get("synchronized_three_asset_down_20d")
+    if not isinstance(sync, dict):
+        data_limits.append("Three-asset synchronization is MISSING; available common dates cannot be assessed.")
+    else:
+        status = str(sync.get("status") or ("AVAILABLE" if sync.get("value") is not None else "MISSING")).upper()
+        if status == "AVAILABLE" and sync.get("value") is True:
+            supporting.append("A simultaneous 20-day decline in stocks, bonds and gold is confirmed on aligned common dates.")
+        elif status == "AVAILABLE" and sync.get("value") is False:
+            against.append("No simultaneous 20-day decline in stocks, bonds and gold was confirmed within the valid aligned common-date sample.")
+        elif status == "INSUFFICIENT_DATA":
+            data_limits.append("Three-asset synchronization is INSUFFICIENT_DATA; the common-date sample is too short to determine whether a simultaneous decline occurred.")
+        else:
+            data_limits.append("Three-asset synchronization is MISSING; available common dates cannot be assessed.")
+    return {"supporting": supporting, "against": against, "data_limits": data_limits}
 
 def run_report(asof, database, output, parquet_directory=None, manual=None,
                emergency_market_failure=False, nq_report=None, state_history_file=None):

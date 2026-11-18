@@ -17,7 +17,7 @@ from sentinel.crs.metrics import build_features, _common_asset_returns
 from sentinel.crs.manual import load_manual_evidence
 from sentinel.crs.report import write_reports
 from sentinel.crs.storage import connect, save_collected, save_report, latest_reports, export_parquet
-from sentinel.crs.runner import run_report
+from sentinel.crs.runner import run_report, _evidence
 from sentinel.risk_v2 import WEIGHTS as NQ_WEIGHTS
 
 def record(value, quality="CURRENT_VINTAGE"):
@@ -497,6 +497,80 @@ class CRSEngineTests(unittest.TestCase):
             self.assertIn("^NDX", row[3])
             con.close()
 
+    def test_feature_source_fields_round_trip_per_security(self):
+        expected = {"ndx_drawdown_63d": ("yahoo:^NDX", "^NDX"),
+                    "sox_drawdown_63d": ("yahoo:^SOX", "^SOX"),
+                    "bond_return_20d": ("yahoo:IEF", "IEF"),
+                    "gold_drawdown_20d": ("yahoo:GLD", "GLD"),
+                    "usd_20d_change_pct": ("yahoo:DX-Y.NYB", "DX-Y.NYB")}
+        with tempfile.TemporaryDirectory() as tmp:
+            con = connect(Path(tmp)/"source-fields.duckdb")
+            prices, price_status = {}, {}
+            for key, (_source_id, ticker) in expected.items():
+                price_key = {"ndx_drawdown_63d":"ndx", "sox_drawdown_63d":"sox",
+                             "bond_return_20d":"bond_total_return_proxy", "gold_drawdown_20d":"gold_proxy",
+                             "usd_20d_change_pct":"dxy_proxy"}[key]
+                prices[price_key] = {"2026-11-18": 100.0}
+                price_status[price_key] = {"source_id":_source_id, "ticker":ticker,
+                    "source":"Yahoo Finance via yfinance", "retrieved_at":"2026-11-18T20:00:00+00:00",
+                    "raw_sha256":"a"*64, "license_status":"REVIEW_REQUIRED",
+                    "quality":"UNVERIFIED_VENDOR_PROXY"}
+            features = {metric:{"value":1.0, "source":"Yahoo Finance via yfinance",
+                "source_id":source_id, "ticker":ticker, "raw_sha256":"b"*64,
+                "observation_date":"2026-11-18", "published_at":None,
+                "retrieved_at":"2026-11-18T20:00:00+00:00", "quality":"UNVERIFIED_VENDOR_PROXY",
+                "license_status":"REVIEW_REQUIRED"}
+                for metric,(source_id,ticker) in expected.items()}
+            save_collected(con, {"asof":"2026-11-18", "fred":{}, "prices":prices,
+                                 "price_status":price_status, "features":features})
+            rows = con.execute("SELECT metric_id, source_id, source_url, metadata FROM crs_features ORDER BY metric_id").fetchall()
+            by_metric = {row[0]:row[1:] for row in rows}
+            for metric,(source_id,ticker) in expected.items():
+                actual_id, source_url, metadata = by_metric[metric]
+                self.assertEqual(actual_id,source_id)
+                self.assertNotEqual(actual_id,"Yahoo Finance via yfinance")
+                self.assertIsNone(source_url)
+                meta = json.loads(metadata)
+                self.assertEqual(meta["source"],"Yahoo Finance via yfinance")
+                self.assertEqual(meta["source_id"],source_id)
+                self.assertEqual(meta["ticker"],ticker)
+                self.assertEqual(meta["raw_sha256"],"b"*64)
+                self.assertIn("observation_date",meta)
+                self.assertIn("published_at",meta)
+                self.assertIn("retrieved_at",meta)
+                self.assertIn("license_status",meta)
+            observation_ids = dict(con.execute("SELECT DISTINCT metric_id, source_id FROM crs_observations").fetchall())
+            for price_key, (source_id, _ticker) in {
+                "price:ndx":expected["ndx_drawdown_63d"], "price:sox":expected["sox_drawdown_63d"],
+                "price:bond_total_return_proxy":expected["bond_return_20d"],
+                "price:gold_proxy":expected["gold_drawdown_20d"],
+                "price:dxy_proxy":expected["usd_20d_change_pct"]}.items():
+                self.assertEqual(observation_ids[price_key],source_id)
+            con.close()
+
+    def test_sync_evidence_distinguishes_available_missing_and_insufficient(self):
+        score = {"modules":{}}
+        alerts = {"liquidity_crisis":{"state":"CLEAR"},"credit_risk":{"state":"CLEAR"}}
+        cases = [
+            ("complete no decline", {"status":"AVAILABLE","value":False}, "against"),
+            ("complete decline", {"status":"AVAILABLE","value":True}, "supporting"),
+            ("short shared sample", {"status":"INSUFFICIENT_DATA","value":None}, "data_limits"),
+            ("absent feature", None, "data_limits"),
+            ("explicit missing", {"status":"MISSING","value":None}, "data_limits"),
+        ]
+        for label, feature, expected_bucket in cases:
+            with self.subTest(label=label):
+                features = {} if feature is None else {"synchronized_three_asset_down_20d":feature}
+                evidence = _evidence(score,features,alerts)
+                flattened = " ".join(evidence["against"])
+                if label == "complete no decline":
+                    self.assertEqual(sum("No simultaneous 20-day decline" in line
+                                         for line in evidence["against"]),1)
+                    self.assertIn("No simultaneous 20-day decline",flattened)
+                else:
+                    self.assertNotIn("No simultaneous 20-day decline",flattened)
+                self.assertTrue(evidence[expected_bucket])
+
     def test_local_private_overlay_calculates_only_user_supplied_stress(self):
         from local_crs_portfolio import calculate_stress, write_obsidian
         profile = {"max_loss_budget_pct":0.10,
@@ -530,6 +604,49 @@ class CRSEngineTests(unittest.TestCase):
             self.assertEqual(report["score_status"], "SCORE_PUBLISHED")
             self.assertTrue(Path(paths["json"]).exists())
             self.assertTrue((Path(tmp)/"parquet"/"crs_features.parquet").exists())
+
+    def test_end_to_end_collect_database_and_insufficient_sync_report(self):
+        from sentinel.crs import runner
+        from sentinel.crs.fred import SERIES
+        from sentinel.crs.prices import TICKERS
+        asof = "2026-11-18"
+        days = [(date(2026,10,30) + timedelta(days=i)).isoformat() for i in range(20)]
+        def fred_fetcher(key, requested_asof):
+            return {"values":{}, "observation_date":requested_asof, "source":f"FRED {SERIES[key]}",
+                    "series_id":SERIES[key], "published_at":None,
+                    "retrieved_at":requested_asof+"T00:00:00+00:00", "license_status":"REVIEW_REQUIRED",
+                    "quality":"CURRENT_VINTAGE", "raw_sha256":"d"*64}
+        def price_fetcher(requested_asof):
+            values, status = {}, {}
+            for i,(asset,ticker) in enumerate(TICKERS.items()):
+                values[asset] = {day:100.0+i+j for j,day in enumerate(days)}
+                status[asset] = {"status":"AVAILABLE","ticker":ticker,"source_id":f"yahoo:{ticker}",
+                    "source":"Yahoo Finance via yfinance","latest_date":days[-1],"published_at":None,
+                    "retrieved_at":requested_asof+"T20:00:00+00:00","raw_sha256":str(i)*64,
+                    "license_status":"REVIEW_REQUIRED","quality":"UNVERIFIED_VENDOR_PROXY"}
+            return values,status
+        with tempfile.TemporaryDirectory() as tmp:
+            def fixture_collect(day):
+                return collect(day,fred_fetcher=fred_fetcher,price_fetcher=price_fetcher)
+            with patch.object(runner,"collect",side_effect=fixture_collect):
+                report, paths = run_report(asof,Path(tmp)/"e2e.duckdb",Path(tmp)/"reports")
+            self.assertEqual(report["score_status"],"DATA_INSUFFICIENT")
+            self.assertEqual(report["score_result"]["score"],None)
+            self.assertTrue(report["evidence"]["data_limits"])
+            self.assertFalse(any("No simultaneous 20-day decline" in line
+                                 for line in report["evidence"]["against"]))
+            md = Path(paths["markdown"]).read_text(encoding="utf-8")
+            html_report = Path(paths["html"]).read_text(encoding="utf-8")
+            json_report = json.loads(Path(paths["json"]).read_text(encoding="utf-8"))
+            for rendered in (md,html_report):
+                self.assertIn("Evidence limits",rendered)
+                self.assertNotIn("No simultaneous 20-day decline",rendered)
+            self.assertTrue(json_report["evidence"]["data_limits"])
+            con = connect(Path(tmp)/"e2e.duckdb")
+            saved = dict(con.execute("SELECT metric_id, source_id FROM crs_observations WHERE metric_id LIKE 'price:%' GROUP BY metric_id, source_id").fetchall())
+            for asset,ticker in TICKERS.items():
+                self.assertEqual(saved[f"price:{asset}"],f"yahoo:{ticker}")
+            con.close()
 
     def test_actions_summary_separates_pipeline_and_score_status(self):
         report = {"asof":"2026-11-18","pipeline_status":"PIPELINE_SUCCESS",
