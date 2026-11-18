@@ -67,5 +67,7 @@ def collect(asof, fred_fetcher=fetch_series, price_fetcher=fetch_prices):
         }
     features, histories = build_features(price_values, fred, asof, price_status=price_status)
     return {"asof": asof, "fred": fred, "prices": price_values,
+            "price_status": price_status,
+            "price_status": price_status,
             "features": features, "histories": histories, "source_status": source_status,
             "expected_market_proxies": list(TICKERS)}

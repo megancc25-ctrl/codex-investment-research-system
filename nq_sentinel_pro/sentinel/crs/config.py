@@ -20,6 +20,8 @@ RULES = {
     for key, value in CONFIG["thresholds"].items()
 }
 GROUPS = {m: sorted({r[1] for r in RULES.values() if r[0] == m}) for m in MODULE_WEIGHTS}
+MODULE_METRICS = {m: sorted(k for k, rule in RULES.items() if rule[0] == m) for m in MODULE_WEIGHTS}
+MAX_CONFIRMATION_GAP_DAYS = int(CONFIG.get("state_machine", {}).get("max_confirmation_gap_days", 4))
 if round(sum(MODULE_WEIGHTS.values())) != 100:
     raise ValueError("CRS module weights must total 100")
 if abs(THRESHOLD_WEIGHT + PERCENTILE_WEIGHT - 1.0) > 1e-12:

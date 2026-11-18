@@ -16,6 +16,7 @@ def render_summary(report):
         f"- Pipeline status: **{report.get('pipeline_status', 'UNKNOWN')}**",
         f"- Score status: **{report.get('score_status', 'UNKNOWN')}**",
         f"- Data coverage: **{score.get('data_coverage_pct', 0):.1f}%**",
+        f"- Metric coverage: **{score.get('metric_coverage_pct', score.get('data_coverage_pct', 0)):.1f}%**; group coverage: **{score.get('group_coverage_pct', 0):.1f}%**; weighted module metric coverage: **{score.get('weighted_module_coverage_pct', 0):.1f}%**",
         f"- Full CRS score published: **{'YES' if score_value is not None else 'NO'}**",
         f"- CRS score: **{score_value if score_value is not None else 'N/A'}**",
         f"- State machine: **{state.get('state', 'UNKNOWN')}** ({state.get('label', '')})",
@@ -31,6 +32,9 @@ def render_summary(report):
                      for key, value in failures)
     else:
         lines.append("- None")
+    lines += ["", "### Module metric coverage", "", "| Module | Metrics | Available | Missing | Metric coverage | Group coverage |", "|---|---:|---:|---:|---:|---:|"]
+    for name, item in score.get("modules", {}).items():
+        lines.append(f"| {_safe(name)} | {item.get('metric_count', 0)} | {item.get('available_metric_count', 0)} | {item.get('missing_metric_count', 0)} | {item.get('metric_coverage_pct', 0):.1f}% | {item.get('group_coverage_pct', 0):.1f}% |")
     return "\n".join(lines) + "\n"
 
 def main(argv=None):

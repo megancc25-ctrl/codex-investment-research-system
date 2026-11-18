@@ -30,15 +30,16 @@ def render_markdown(report):
         f"- Score status: **{score['status']}**",
         f"- System state: **{state['state']}** ({state.get('label', state['state'])})",
         f"- Data coverage: **{score['data_coverage_pct']:.1f}%**; confidence: **{score['data_confidence']}**",
+        f"- Metric coverage: **{score.get('metric_coverage_pct', score['data_coverage_pct']):.1f}%**; group coverage: **{score.get('group_coverage_pct', 0):.1f}%**; weighted module metric coverage: **{score.get('weighted_module_coverage_pct', 0):.1f}%**",
         f"- Critical missing metrics: **{', '.join(score.get('critical_metrics_missing', [])) or 'none'}**",
         f"- Generated: {report['generated_at']}", "",
         "> Research-only descriptor. The score is not a crisis probability or a trading instruction.", "",
         "## Seven modules", "",
-        "| Module | Weight | Score | Coverage | Status |",
-        "|---|---:|---:|---:|---|",
+        "| Module | Weight | Score | Metrics available / total | Metric coverage | Group coverage | Status |",
+        "|---|---:|---:|---:|---:|---:|---|",
     ]
     for name, item in score["modules"].items():
-        lines.append(f"| {name} | {item['weight_pct']}% | {item['score'] if item['score'] is not None else 'N/A'} | {item['coverage_pct']:.1f}% | {item['status']} |")
+        lines.append(f"| {name} | {item['weight_pct']}% | {item['score'] if item['score'] is not None else 'N/A'} | {item.get('available_metric_count', 0)} / {item.get('metric_count', 0)} | {item.get('metric_coverage_pct', 0):.1f}% | {item.get('group_coverage_pct', 0):.1f}% | {item['status']} |")
     lines += ["", "## Combination alerts", ""]
     for name, item in report.get("alerts", {}).items():
         lines.append(f"- **{name}: {item.get('state', 'UNKNOWN')}**  {item.get('rule', item.get('note', ''))}")

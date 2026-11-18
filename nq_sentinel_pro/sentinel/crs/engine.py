@@ -1,7 +1,7 @@
 """Deterministic cross-asset scoring with explicit coverage and no missing-value zero fill."""
 from __future__ import annotations
 import math
-from .config import (CRITICAL_METRICS, CRITICAL_MODULES, GROUPS, MIN_PERCENTILE_HISTORY, MIN_TOTAL_COVERAGE,
+from .config import (CRITICAL_METRICS, CRITICAL_MODULES, GROUPS, MODULE_METRICS, MIN_PERCENTILE_HISTORY, MIN_TOTAL_COVERAGE,
                      MODULE_WEIGHTS, PERCENTILE_WINDOW, PERCENTILE_WEIGHT,
                      RULES, THRESHOLD_WEIGHT)
 
@@ -65,30 +65,52 @@ def score_snapshot(features, histories=None):
         assessment = _assess_metric(name, features.get(name), histories)
         if assessment is None:
             missing.append(name)
-            details[name] = {"status": "MISSING_OR_STALE", "value": None, "group": group, "module": module}
+            supplied = features.get(name)
+            status = supplied.get("status", "MISSING_OR_STALE") if isinstance(supplied, dict) else "MISSING_OR_STALE"
+            details[name] = {"status": status, "value": None, "group": group, "module": module}
             continue
         details[name] = {"status": "AVAILABLE", "group": group, "module": module, **assessment}
         grouped[module].setdefault(group, []).append(assessment)
         qualities.append(assessment["quality"])
 
-    modules, weighted_coverage, available_weight = {}, 0.0, 0
+    modules, weighted_group_coverage, weighted_metric_coverage, available_weight = {}, 0.0, 0.0, 0
+    metric_total = len(RULES)
+    metric_available = len(RULES) - len(missing)
+    group_total = sum(len(v) for v in GROUPS.values())
+    group_available = sum(sum(
+        any(details[k]["status"] == "AVAILABLE" for k, rule in RULES.items()
+            if rule[0] == m and rule[1] == g)
+        for g in GROUPS[m]) for m in MODULE_WEIGHTS)
     for module, weight in MODULE_WEIGHTS.items():
         expected, present = GROUPS[module], grouped[module]
-        coverage = len(present) / len(expected) if expected else 0.0
-        weighted_coverage += weight * coverage
+        expected_metrics = MODULE_METRICS[module]
+        available_metrics = [k for k in expected_metrics if details[k]["status"] == "AVAILABLE"]
+        group_coverage = len(present) / len(expected) if expected else 0.0
+        metric_coverage = len(available_metrics) / len(expected_metrics) if expected_metrics else 0.0
+        weighted_group_coverage += weight * group_coverage
+        weighted_metric_coverage += weight * metric_coverage
         group_scores = {g: max(item["score"] for item in records) for g, records in present.items()}
         score = round(sum(group_scores.values()) / len(group_scores), 2) if group_scores else None
         if score is not None:
             available_weight += weight
         modules[module] = {
-            "weight_pct": weight, "score": score, "coverage_pct": round(100 * coverage, 1),
+            "weight_pct": weight, "score": score,
+            "metric_count": len(expected_metrics), "available_metric_count": len(available_metrics),
+            "missing_metric_count": len(expected_metrics) - len(available_metrics),
+            "metric_coverage_pct": round(100 * metric_coverage, 2),
+            "group_count": len(expected), "available_group_count": len(present),
+            "group_coverage_pct": round(100 * group_coverage, 2),
+            "coverage_pct": round(100 * group_coverage, 1),
             "groups_available": sorted(present), "groups_expected": expected,
             "group_scores": group_scores,
-            "status": "AVAILABLE" if coverage == 1 else "PARTIAL" if present else "MISSING",
+            "status": "AVAILABLE" if metric_coverage == 1 else "PARTIAL" if available_metrics else "MISSING",
         }
 
-    coverage_raw = weighted_coverage
-    coverage = round(coverage_raw, 1)
+    metric_coverage_raw = 100.0 * metric_available / metric_total if metric_total else 0.0
+    group_coverage_raw = 100.0 * group_available / group_total if group_total else 0.0
+    weighted_group_coverage = round(weighted_group_coverage, 6)
+    weighted_metric_coverage = round(weighted_metric_coverage, 6)
+    coverage = round(metric_coverage_raw, 1)
     critical_missing = [m for m in CRITICAL_MODULES if modules[m]["score"] is None]
     critical_metrics_missing = [name for name in CRITICAL_METRICS
                                 if details.get(name, {}).get("status") != "AVAILABLE"]
@@ -99,7 +121,7 @@ def score_snapshot(features, histories=None):
         normalized = round(100 * partial_sum / available_weight, 2)
     else:
         partial_sum = normalized = None
-    publishable = (coverage_sufficient(coverage_raw) and not critical_missing
+    publishable = (coverage_sufficient(metric_coverage_raw) and not critical_missing
                    and not critical_metrics_missing and normalized is not None)
     score = normalized if publishable else None
 
@@ -114,7 +136,13 @@ def score_snapshot(features, histories=None):
 
     return {
         "score": score, "status": "RESEARCH_ONLY_UNVALIDATED" if publishable else "INSUFFICIENT_DATA",
-        "data_coverage_pct": coverage, "data_coverage_unrounded_pct": coverage_raw,
+        "data_coverage_pct": coverage, "data_coverage_unrounded_pct": metric_coverage_raw,
+        "metric_coverage_pct": coverage, "group_coverage_pct": round(group_coverage_raw, 2),
+        "weighted_module_coverage_pct": weighted_metric_coverage,
+        "weighted_group_coverage_pct": weighted_group_coverage,
+        "metric_count": metric_total, "available_metric_count": metric_available,
+        "missing_metric_count": metric_total - metric_available,
+        "group_count": group_total, "available_group_count": group_available,
         "data_confidence": confidence,
         "critical_modules_missing": critical_missing,
         "critical_metrics_missing": critical_metrics_missing, "missing_metrics": missing,

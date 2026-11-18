@@ -2,7 +2,6 @@
 from __future__ import annotations
 import json
 from pathlib import Path
-from datetime import datetime, timezone
 
 def connect(path):
     import duckdb
@@ -30,24 +29,31 @@ def save_collected(con, collection):
             con.execute("""INSERT OR REPLACE INTO crs_observations
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 [key, day, float(value), "source-native", source["series_id"], source["source"],
-                 source["source_kind"], source["quality"], None, source["retrieved_at"],
+                 source["source_kind"], source["quality"], source.get("published_at"), source["retrieved_at"],
                  "CURRENT_VINTAGE", source["raw_sha256"], "source-defined",
                  json.dumps({"license_note": source["license_note"], "unit_note": source["unit_note"]})])
     for symbol, series in collection["prices"].items():
+        price_meta = collection.get("price_status", {}).get(symbol, {})
         for day, value in series.items():
             con.execute("""INSERT OR REPLACE INTO crs_observations
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                [f"price:{symbol}", day, float(value), "adjusted_close_proxy", symbol,
+                [f"price:{symbol}", day, float(value), "adjusted_close_proxy", price_meta.get("source_id", f"yahoo:{symbol}"),
                  "https://finance.yahoo.com/", "YAHOO_YFINANCE", "UNVERIFIED_VENDOR_PROXY",
-                 None, datetime.now(timezone.utc).isoformat(), "VENDOR_HISTORY",
-                 None, "daily", json.dumps({"proxy": True})])
+                 price_meta.get("published_at"), price_meta.get("retrieved_at"), "VENDOR_HISTORY",
+                 price_meta.get("raw_sha256"), "daily",
+                 json.dumps({"proxy": True, **price_meta})])
     for metric, record in collection["features"].items():
+        if not isinstance(record, dict) or record.get("value") is None:
+            continue
         con.execute("""INSERT OR REPLACE INTO crs_features
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [collection["asof"], metric, float(record["value"]), "feature-native",
              record.get("source") or "unknown", record.get("source") or "unknown",
              record.get("quality") or "UNKNOWN", int(record.get("age_days") or 0),
-             json.dumps({"observation_date": record.get("observation_date"),
+            json.dumps({"observation_date": record.get("observation_date"),
+                        "source_id": record.get("source_id", "UNKNOWN"),
+                        "ticker": record.get("ticker", "UNKNOWN"),
+                        "raw_sha256": record.get("raw_sha256"),
                         "published_at": record.get("published_at"),
                         "retrieved_at": record.get("retrieved_at"),
                         "license_status": record.get("license_status", "REVIEW_REQUIRED"),

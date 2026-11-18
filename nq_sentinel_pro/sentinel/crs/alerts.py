@@ -29,14 +29,15 @@ def evaluate_alerts(features, metrics=None):
               "YELLOW" if n_credit >= 2 else
               "CLEAR" if all(x is not None for x in (hy_change, ig_level, eq_loss)) else "INSUFFICIENT_DATA")
 
-    stock, bond, gold = (_get(features, k) for k in ("stock_return_20d", "bond_return_20d", "gold_return_20d"))
-    sync = all(x is not None and x < 0 for x in (stock, bond, gold))
-    severe_sync = all(x is not None and x <= -0.05 for x in (stock, bond, gold))
+    sync_value = _get(features, "synchronized_three_asset_down_20d")
+    severe_value = _get(features, "synchronized_three_asset_loss_5pct")
+    sync = bool(sync_value) if sync_value is not None else False
+    severe_sync = bool(severe_value) if severe_value is not None else False
     repo_bad = _yes(metrics.get("repo_extreme"))
     funding_bad = _yes(metrics.get("funding_market_failure")) or _yes(metrics.get("margin_stress"))
     liquidity = ("RED_CANDIDATE" if sync and (repo_bad or funding_bad) else
                  "CROSS_ASSET_SELL_OFF" if sync else
-                 "CLEAR" if all(x is not None for x in (stock, bond, gold)) else "INSUFFICIENT_DATA")
+                 "CLEAR" if sync_value is not None else "INSUFFICIENT_DATA")
 
     ai_keys = ("cloud_capex_yoy_pct", "cloud_operating_cash_flow_yoy_pct",
                "free_cash_flow_yoy_pct", "gpu_rental_price_yoy_pct",

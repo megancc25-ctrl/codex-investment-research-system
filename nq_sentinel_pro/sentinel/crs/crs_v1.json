@@ -17,6 +17,7 @@
   "history_percentile_weight": 0.4,
   "percentile_min_observations": 252,
   "percentile_window_observations": 1260,
+  "state_machine": {"max_confirmation_gap_days": 4},
   "thresholds": {
     "ndx_below_200dma": {"module":"equity","group":"trend","polarity":"high","levels":[[1,25]]},
     "ndx_gap_below_200dma": {"module":"equity","group":"trend","polarity":"high","levels":[[0.05,25],[0.1,75],[0.15,100]]},

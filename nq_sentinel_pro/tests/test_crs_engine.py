@@ -13,10 +13,10 @@ from sentinel.crs.state import candidate_reasons, candidate_state, transition_st
 from sentinel.crs.alerts import evaluate_alerts
 from sentinel.crs.backtest import evaluate_crisis_backtest
 from sentinel.crs.fred import parse_fred_csv
-from sentinel.crs.metrics import build_features
+from sentinel.crs.metrics import build_features, _common_asset_returns
 from sentinel.crs.manual import load_manual_evidence
 from sentinel.crs.report import write_reports
-from sentinel.crs.storage import connect, save_report, latest_reports, export_parquet
+from sentinel.crs.storage import connect, save_collected, save_report, latest_reports, export_parquet
 from sentinel.crs.runner import run_report
 from sentinel.risk_v2 import WEIGHTS as NQ_WEIGHTS
 
@@ -34,6 +34,8 @@ def full_features(risk=False):
         "fed_reserves_change_4w_pct": 0.0,
         "real_home_price_yoy_pct": 2.0, "home_sales_yoy_pct": 0.0,
         "stock_bond_corr_20d": 0.0, "synchronized_three_asset_down_20d": False,
+        "sox_drawdown_63d": 0.0, "ust30y_change_20d_bp": 0.0, "stlfsi_level": -0.2,
+        "stock_gold_corr_20d": 0.0, "synchronized_three_asset_loss_5pct": False,
     }
     if risk:
         values.update({
@@ -107,6 +109,7 @@ class CRSEngineTests(unittest.TestCase):
     def test_complete_coverage_produces_research_only_score(self):
         result = score_snapshot(full_features())
         self.assertEqual(result["data_coverage_pct"], 100)
+        self.assertEqual(result["metric_coverage_pct"], 100)
         self.assertEqual(result["status"], "RESEARCH_ONLY_UNVALIDATED")
         self.assertEqual(result["score"], 0)
         self.assertFalse(result["score_is_probability"])
@@ -123,6 +126,104 @@ class CRSEngineTests(unittest.TestCase):
         self.assertFalse(coverage_sufficient(84.9))
         self.assertTrue(coverage_sufficient(85.0))
         self.assertFalse(coverage_sufficient(float("nan")))
+
+    def test_metric_and_group_coverage_diverge_for_partial_group(self):
+        features = full_features()
+        features.pop("sox_drawdown_63d")
+        result = score_snapshot(features)
+        self.assertEqual(result["modules"]["equity"]["group_coverage_pct"], 100.0)
+        self.assertLess(result["modules"]["equity"]["metric_coverage_pct"], 100.0)
+        self.assertEqual(result["modules"]["equity"]["missing_metric_count"], 1)
+        self.assertLess(result["metric_coverage_pct"], 100.0)
+        self.assertEqual(result["metric_count"], 26)
+        self.assertEqual(result["available_metric_count"], 25)
+
+    def test_coverage_threshold_uses_metric_count_and_blocks_missing_critical(self):
+        features = full_features()
+        features.pop("sox_drawdown_63d")
+        features.pop("stock_gold_corr_20d")
+        features.pop("move_level")
+        result = score_snapshot(features)
+        self.assertGreaterEqual(result["metric_coverage_pct"], 85.0)
+        self.assertIsNone(result["score"])
+        self.assertIn("move_level", result["critical_metrics_missing"])
+
+    def test_price_provenance_is_bound_to_exact_symbol_and_raw_hash(self):
+        days = [(date(2026, 9, 1) + timedelta(days=i)).isoformat() for i in range(79)]
+        prices = {"ndx": {d: 100-i*.1 for i,d in enumerate(days)},
+                  "sox": {d: 200-i*.2 for i,d in enumerate(days)}}
+        status = {
+            "ndx": {"source":"Yahoo Finance via yfinance", "source_id":"yahoo:^NDX", "ticker":"^NDX",
+                    "retrieved_at":"2026-11-18T20:00:00+00:00", "raw_sha256":"a"*64,
+                    "license_status":"REVIEW_REQUIRED", "quality":"UNVERIFIED_VENDOR_PROXY"},
+            "sox": {"source":"Yahoo Finance via yfinance", "source_id":"yahoo:^SOX", "ticker":"^SOX",
+                    "retrieved_at":"2026-11-18T21:00:00+00:00", "raw_sha256":"b"*64,
+                    "license_status":"REVIEW_REQUIRED", "quality":"UNVERIFIED_VENDOR_PROXY"},
+        }
+        features, _ = build_features(prices, {}, "2026-11-18", price_status=status)
+        self.assertEqual(features["ndx_drawdown_63d"]["source_id"], "yahoo:^NDX")
+        self.assertEqual(features["sox_drawdown_63d"]["source_id"], "yahoo:^SOX")
+        self.assertEqual(features["sox_drawdown_63d"]["retrieved_at"], "2026-11-18T21:00:00+00:00")
+        self.assertEqual(features["sox_drawdown_63d"]["raw_sha256"], "b"*64)
+
+    def test_joint_returns_require_common_dates_and_positive_prices(self):
+        a = [(f"2026-01-{d:02d}", 100+d) for d in range(1, 24)]
+        b = [(f"2026-01-{d:02d}", 200+d) for d in range(1, 24) if d != 10]
+        c = [(f"2026-01-{d:02d}", 300+d) for d in range(1, 24)]
+        returns, days = _common_asset_returns([a,b,c], lag=20)
+        self.assertEqual(len(days), 21)
+        self.assertNotIn("2026-01-10", days)
+        self.assertEqual(set(returns), {0,1,2})
+        insufficient, short_days = _common_asset_returns([a[:10],b[:10],c[:10]], lag=20)
+        self.assertEqual(insufficient, {})
+        self.assertLess(len(short_days), 21)
+        bad = list(a); bad[-2] = (bad[-2][0], 0)
+        filtered, filtered_days = _common_asset_returns([bad,b,c], lag=20)
+        self.assertIn(0, filtered)
+        self.assertNotIn("2026-01-22", filtered_days)
+
+    def test_joint_correlation_records_shared_window_dates(self):
+        dates = [(date(2026,10,1)+timedelta(days=i)).isoformat() for i in range(30)]
+        prices = {
+            "ndx": {d: 100 + i + (i % 3) for i,d in enumerate(dates)},
+            "bond_total_return_proxy": {d: 200 + 2*i + (i % 4) for i,d in enumerate(dates) if i != 12},
+            "gold_proxy": {d: 300 + 3*i + (i % 5) for i,d in enumerate(dates)},
+        }
+        status = {key:{"source_id":f"fixture:{key}","ticker":key,"raw_sha256":str(i)*64,
+                       "retrieved_at":f"2026-11-01T0{i}:00:00+00:00","quality":"UNVERIFIED_VENDOR_PROXY"}
+                  for i,key in enumerate(prices,1)}
+        features, _ = build_features(prices, {}, dates[-1], price_status=status)
+        corr = features["stock_bond_corr_20d"]
+        self.assertEqual(corr["window_observation_count"], 20)
+        self.assertEqual(corr["window_end_date"], dates[-1])
+        self.assertEqual(corr["source_id"], "joint:fixture:ndx:fixture:bond_total_return_proxy")
+        self.assertEqual(corr["ticker"], "NDX|IEF")
+
+    def test_insufficient_common_window_is_explicit_not_false_or_zero(self):
+        dates = [(date(2026,1,1)+timedelta(days=i)).isoformat() for i in range(20)]
+        prices = {key: {d: 100.0+i for i,d in enumerate(dates)}
+                  for key in ("ndx", "bond_total_return_proxy", "gold_proxy")}
+        features, _ = build_features(prices, {}, "2026-01-20")
+        item = features["synchronized_three_asset_down_20d"]
+        self.assertIsNone(item["value"])
+        self.assertEqual(item["status"], "INSUFFICIENT_DATA")
+        self.assertEqual(score_snapshot(features)["metric_details"]["synchronized_three_asset_down_20d"]["status"],
+                         "INSUFFICIENT_DATA")
+
+    def test_state_confirmation_gap_resets_consecutive_report_count(self):
+        old = [{"asof":"2026-11-13","state":"L0","raw_candidate":"L4"}]
+        near = transition_state("L4", old, asof="2026-11-16")
+        self.assertEqual(near["state"], "L4")
+        self.assertEqual(near["confirmations"], 2)
+        far = transition_state("L4", old, asof="2026-11-20")
+        self.assertEqual(far["state"], "L0")
+        self.assertEqual(far["confirmations"], 1)
+        established = [{"asof":"2026-11-13","state":"L3","raw_candidate":"L3"}]
+        restarted = transition_state("L4", established, asof="2026-11-20")
+        self.assertEqual(restarted["state"], "L3")
+        self.assertEqual(restarted["confirmations"], 1)
+        missing = transition_state("INSUFFICIENT_DATA", old, asof="2026-11-16")
+        self.assertEqual(missing["state"], "INSUFFICIENT_DATA")
 
     def test_l4_threshold_edges_and_reason_codes(self):
         def result(total, credit, liquidity):
@@ -195,7 +296,8 @@ class CRSEngineTests(unittest.TestCase):
         self.assertEqual(confirmed["candidate_reason_codes"], ["CREDIT_MODULE_SCORE"])
 
     def test_liquidity_alert_requires_both_sync_selloff_and_funding_stress(self):
-        f = {"stock_return_20d":record(-0.1), "bond_return_20d":record(-0.06), "gold_return_20d":record(-0.08)}
+        f = {"stock_return_20d":record(-0.1), "bond_return_20d":record(-0.06), "gold_return_20d":record(-0.08),
+             "synchronized_three_asset_down_20d":record(True), "synchronized_three_asset_loss_5pct":record(True)}
         alert = evaluate_alerts(f, {})
         self.assertEqual(alert["liquidity_crisis"]["state"], "CROSS_ASSET_SELL_OFF")
         alert = evaluate_alerts(f, {"repo_extreme":True})
@@ -378,6 +480,21 @@ class CRSEngineTests(unittest.TestCase):
             self.assertEqual(latest_reports(con)[0]["state_machine"]["state"],"L1")
             export_parquet(con,Path(tmp)/"parquet")
             self.assertTrue((Path(tmp)/"parquet"/"crs_reports.parquet").exists())
+            con.close()
+
+    def test_price_snapshot_hash_and_retrieval_metadata_are_persisted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            con = connect(Path(tmp)/"provenance.duckdb")
+            collection = {"asof":"2026-11-18","fred":{},"features":{},
+                "prices":{"ndx":{"2026-11-18":123.0}},
+                "price_status":{"ndx":{"source_id":"yahoo:^NDX","ticker":"^NDX",
+                    "retrieved_at":"2026-11-18T20:00:00+00:00","raw_sha256":"c"*64,
+                    "license_status":"REVIEW_REQUIRED","quality":"UNVERIFIED_VENDOR_PROXY"}}}
+            save_collected(con, collection)
+            row = con.execute("SELECT source_id, retrieved_at, raw_sha256, metadata FROM crs_observations").fetchone()
+            self.assertEqual(row[0], "yahoo:^NDX")
+            self.assertEqual(row[2], "c"*64)
+            self.assertIn("^NDX", row[3])
             con.close()
 
     def test_local_private_overlay_calculates_only_user_supplied_stress(self):

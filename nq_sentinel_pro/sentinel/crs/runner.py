@@ -61,7 +61,16 @@ def run_report(asof, database, output, parquet_directory=None, manual=None,
         reason_codes = candidate_reasons(score, emergency_market_failure=emergency_market_failure)
         state = transition_state(candidate, history,
                                  emergency_market_failure=emergency_market_failure,
-                                 candidate_reason_codes=reason_codes)
+                                 candidate_reason_codes=reason_codes, asof=asof)
+        state["transition_evidence"] = {
+            "asof": asof, "raw_candidate": candidate, "reason_codes": reason_codes,
+            "module_scores": {k: v.get("score") for k, v in score["modules"].items()},
+            "trigger_modules": [k for k, v in score["modules"].items()
+                                if v.get("score") is not None and v["score"] >= 50],
+            "metric_coverage_pct": score.get("metric_coverage_pct"),
+            "group_coverage_pct": score.get("group_coverage_pct"),
+            "weighted_module_coverage_pct": score.get("weighted_module_coverage_pct"),
+        }
         state["label"] = STATE_LABELS.get(state["state"], state["state"])
         alerts = evaluate_alerts(collection["features"], event_flags)
         report = {
@@ -93,7 +102,10 @@ def run_report(asof, database, output, parquet_directory=None, manual=None,
             state_file.parent.mkdir(parents=True, exist_ok=True)
             state_history = history + [{"asof": asof, "state": state["state"],
                                         "raw_candidate": state["raw_candidate"],
-                                        "candidate_reason_codes": state["candidate_reason_codes"]}]
+                                        "candidate_reason_codes": state["candidate_reason_codes"],
+                                        **state["transition_evidence"],
+                                        "confirmation_gap_days": state.get("confirmation_gap_days"),
+                                        "confirmation_basis": state.get("confirmation_basis")}]
             state_file.write_text(json.dumps(state_history[-10:], indent=2) + "\n", encoding="utf-8")
         if parquet_directory:
             export_parquet(con, parquet_directory)
