@@ -1,6 +1,6 @@
 CRS 1.0 Phase 8 verification log
 Run started: 2026-11-18 21:42:08 +08:00
-Environment: local Python Python 3.13.0
+Environment: Python 3.13.0
 
 COMMAND: python -m compileall -q sentinel tests local_crs_portfolio.py
 COMPILEALL: PASS
