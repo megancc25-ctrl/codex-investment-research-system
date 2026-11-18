@@ -1,6 +1,7 @@
 """DuckDB evidence store. Private portfolio inputs are never accepted here."""
 from __future__ import annotations
 import json
+import hashlib
 import re
 from pathlib import Path
 from datetime import date, datetime
@@ -23,7 +24,7 @@ def connect_fred_cache(path):
         source_url VARCHAR, source_kind VARCHAR, quality VARCHAR,
         license_status VARCHAR, cache_authorization VARCHAR,
         published_at TIMESTAMPTZ, retrieved_at TIMESTAMPTZ, vintage_id VARCHAR,
-        raw_sha256 VARCHAR, metadata JSON,
+        raw_sha256 VARCHAR, normalized_sha256 VARCHAR, metadata JSON,
         PRIMARY KEY(series_key, observation_date, source_id, vintage_id))""")
     return con
 
@@ -165,15 +166,17 @@ def save_fred_cache(con, collection):
             summary["ineligible_series_count"] += 1
             continue
         vintage_id = source.get("vintage_date") or "CURRENT"
+        normalized_sha = _normalized_series_sha256(values)
         con.execute("DELETE FROM crs_fred_cache WHERE series_key = ?", [key])
         for day, value in values.items():
             con.execute("""INSERT OR REPLACE INTO crs_fred_cache
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 [key, day, float(value), source_id, source_url, source.get("source_kind"),
                  source.get("quality"), source.get("license_status"), source.get("cache_authorization"),
-                 source.get("published_at"), retrieved_at, vintage_id, raw_hash,
+                 source.get("published_at"), retrieved_at, vintage_id, raw_hash, normalized_sha,
                  json.dumps({"observation_date": obs_day, "retrieved_at": retrieved_at,
                              "raw_sha256": raw_hash, "license_status": source.get("license_status"),
+                             "normalized_sha256": normalized_sha,
                              "cache_authorization": source.get("cache_authorization")})])
         summary["saved_series_count"] += 1
     return summary
@@ -184,21 +187,22 @@ def load_fred_cache(con, asof):
     asof_date = date.fromisoformat(asof)
     rows = con.execute("""SELECT series_key, observation_date, value, source_id, source_url,
         source_kind, quality, license_status, cache_authorization, published_at,
-        retrieved_at, vintage_id, raw_sha256, metadata FROM crs_fred_cache
+        retrieved_at, vintage_id, raw_sha256, normalized_sha256, metadata FROM crs_fred_cache
         ORDER BY series_key, retrieved_at DESC, observation_date""").fetchall()
     from .fred import SERIES
     grouped = {}
     for row in rows:
-        key, day, value, source_id, source_url, source_kind, quality, license_status, cache_auth, published, retrieved, vintage_id, raw_hash, metadata = row
+        key, day, value, source_id, source_url, source_kind, quality, license_status, cache_auth, published, retrieved, vintage_id, raw_hash, normalized_hash, metadata = row
         retrieved_text = retrieved.isoformat() if hasattr(retrieved, "isoformat") else str(retrieved)
         published_text = published.isoformat() if hasattr(published, "isoformat") else published
         item = grouped.setdefault(key, {"rows": [], "latest_retrieved_at": retrieved,
             "series_id": source_id, "source": source_url, "source_kind": source_kind,
             "quality": quality, "license_status": license_status,
             "cache_authorization": cache_auth, "published_at": published_text,
-            "retrieved_at": retrieved_text, "raw_sha256": raw_hash, "vintage_date": vintage_id})
+            "retrieved_at": retrieved_text, "raw_sha256": raw_hash,
+            "normalized_sha256": normalized_hash, "vintage_date": vintage_id})
         item["rows"].append((day, float(value), source_id, source_url, source_kind, quality,
-                             license_status, cache_auth, retrieved, raw_hash))
+                             license_status, cache_auth, retrieved, raw_hash, normalized_hash))
     fresh, expired, ineligible = {}, 0, 0
     for key, item in grouped.items():
         if key not in SERIES or not item["rows"]:
@@ -224,12 +228,16 @@ def load_fred_cache(con, asof):
                  retrieved_day is not None and retrieved_day <= asof_date and
                  all(row[2] == source_id and row[3] == source_url and row[6] == item["license_status"]
                      and row[4] == item["source_kind"] and row[5] == item["quality"]
-                     and row[7] == item["cache_authorization"] and row[9] == raw_hash for row in selected))
+                     and row[7] == item["cache_authorization"] and row[9] == raw_hash
+                     and row[10] == item["normalized_sha256"] for row in selected))
         if not valid:
             ineligible += 1
             continue
         values = {row[0].isoformat(): row[1] for row in selected if row[0] <= asof_date}
         if not values:
+            ineligible += 1
+            continue
+        if _normalized_series_sha256(values) != item["normalized_sha256"]:
             ineligible += 1
             continue
         latest_day = max(values)
@@ -243,6 +251,11 @@ def load_fred_cache(con, asof):
         fresh[key] = item
     return fresh, {"stored_series_count": len(grouped), "fresh_series_count": len(fresh),
                    "expired_series_count": expired, "ineligible_series_count": ineligible}
+
+
+def _normalized_series_sha256(values):
+    content = "\n".join(f"{day},{float(value):.17g}" for day, value in sorted(values.items()))
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 def save_report(con, report):
     state = report.get("state_machine", {}).get("state", "INSUFFICIENT_DATA")

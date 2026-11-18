@@ -82,6 +82,10 @@ class CRSPhase9Tests(unittest.TestCase):
                 self.assertEqual(set(loaded), {"ust10y"})
                 self.assertEqual(diagnostics["ineligible_series_count"], 0)
                 self.assertEqual(loaded["ust10y"]["cache_authorization"], "APPROVED_FOR_INTERNAL_CACHE")
+                con.execute("UPDATE crs_fred_cache SET value = 9.9 WHERE series_key = 'ust10y'")
+                corrupted, diagnostics = load_fred_cache(con, "2026-11-18")
+                self.assertNotIn("ust10y", corrupted)
+                self.assertEqual(diagnostics["ineligible_series_count"], 1)
             finally:
                 con.close()
 
