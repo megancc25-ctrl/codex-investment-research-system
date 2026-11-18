@@ -1,0 +1,8 @@
+{
+  "profile_name": "LOCAL_ONLY",
+  "base_currency": "CNY",
+  "max_loss_budget_pct": null,
+  "assets": [],
+  "stress_scenarios": [],
+  "notes": "Template only. Replace locally; never commit an actual portfolio file. Add assets with explicit asset_class and decimal weight, plus user-approved stress_scenarios with returns_by_asset_class."
+}

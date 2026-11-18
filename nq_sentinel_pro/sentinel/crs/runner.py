@@ -1,0 +1,94 @@
+"""CRS report orchestration. Public market data only; personal holdings are a separate local tool."""
+from __future__ import annotations
+from datetime import datetime, timezone
+import json
+from pathlib import Path
+from . import __version__
+from .alerts import evaluate_alerts
+from .collector import collect
+from .config import CONFIG_SHA256
+from .decisions import decision_for_state
+from .engine import score_snapshot
+from .report import write_reports
+from .state import STATE_LABELS, candidate_state, transition_state
+from .storage import connect, export_parquet, latest_reports, save_collected, save_report
+
+def _evidence(score_result, features, alerts):
+    supporting, against = [], []
+    for name, item in score_result["modules"].items():
+        if item["score"] is not None and item["score"] >= 50:
+            supporting.append(f"{name} module is elevated at {item['score']:.1f}/100 ({item['coverage_pct']:.0f}% module coverage).")
+        elif item["score"] is not None and item["score"] < 25 and item["coverage_pct"] == 100:
+            against.append(f"{name} module is low at {item['score']:.1f}/100 with complete configured group coverage.")
+    if alerts["liquidity_crisis"]["state"] == "CROSS_ASSET_SELL_OFF":
+        against.append("Three-asset sell-off is present, but no verified repo, funding or margin anomaly was supplied; a liquidity-crisis label is withheld.")
+    if alerts["credit_risk"]["state"] in ("CLEAR", "INSUFFICIENT_DATA"):
+        if alerts["credit_risk"]["state"] == "CLEAR":
+            against.append("Credit risk combination alert is clear on the available HY/IG spread and equity inputs.")
+        else:
+            against.append("Credit confirmation is incomplete; missing data cannot be treated as stable credit.")
+    if not features.get("synchronized_three_asset_down_20d", {}).get("value", False):
+        against.append("No confirmed simultaneous 20-day decline in stocks, bonds and gold from available proxies.")
+    return {"supporting": supporting, "against": against}
+
+def run_report(asof, database, output, parquet_directory=None, manual=None,
+               emergency_market_failure=False, nq_report=None, state_history_file=None):
+    collection = collect(asof)
+    if manual:
+        collection["features"].update(manual["features"])
+        collection["source_status"].update(manual["source_status"])
+    event_flags = manual.get("events", {}) if manual else {}
+    emergency_market_failure = emergency_market_failure or bool(event_flags.get("funding_market_failure"))
+    con = connect(database)
+    try:
+        save_collected(con, collection)
+        score = score_snapshot(collection["features"], collection["histories"])
+        history = latest_reports(con, limit=10)
+        state_file = Path(state_history_file) if state_history_file else None
+        if state_file and state_file.exists():
+            try:
+                state_history = json.loads(state_file.read_text(encoding="utf-8"))
+                history = [x for x in state_history if x.get("asof", "") < asof]
+            except (ValueError, OSError):
+                history = []
+        else:
+            history = [x for x in history if x.get("asof", "") < asof]
+        candidate = candidate_state(score, emergency_market_failure=emergency_market_failure)
+        state = transition_state(candidate, history,
+                                 emergency_market_failure=emergency_market_failure)
+        state["label"] = STATE_LABELS.get(state["state"], state["state"])
+        alerts = evaluate_alerts(collection["features"], event_flags)
+        report = {
+            "schema_version": "crs-report-1.0", "crs_version": __version__,
+            "config_sha256": CONFIG_SHA256,
+            "asof": asof, "generated_at": datetime.now(timezone.utc).isoformat(),
+            "score_result": score, "state_machine": state, "alerts": alerts,
+            "decision": decision_for_state(state["state"]),
+            "evidence": _evidence(score, collection["features"], alerts),
+            "source_status": collection["source_status"],
+            "source_count": {"expected_fred_series": sum(k.startswith("fred:") for k in collection["source_status"]),
+                             "available_features": len(collection["features"])},
+            "integration": {
+                "nq_sentinel": "SEPARATE_ENGINE; no NQ-Sentinel score or weights are modified or combined.",
+                "nq_report_reference": nq_report,
+                "personal_portfolio": "NOT_LOADED; run local_crs_portfolio.py locally if desired.",
+            },
+            "limitations": [
+                "All thresholds and weights are provisional and have not been optimized or validated.",
+                "FRED current-vintage data do not provide historical publication vintages for a valid crisis backtest.",
+                "Yahoo market prices are unverified proxies; IEF/GLD/DXY are not direct full-market benchmarks.",
+                "No automatic order, position-size or FX instruction is generated.",
+            ],
+        }
+        save_report(con, report)
+        if state_file:
+            state_file.parent.mkdir(parents=True, exist_ok=True)
+            state_history = history + [{"asof": asof, "state": state["state"],
+                                        "raw_candidate": state["raw_candidate"]}]
+            state_file.write_text(json.dumps(state_history[-10:], indent=2) + "\n", encoding="utf-8")
+        paths = write_reports(report, output)
+        if parquet_directory:
+            export_parquet(con, parquet_directory)
+        return report, paths
+    finally:
+        con.close()

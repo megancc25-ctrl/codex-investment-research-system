@@ -1,0 +1,58 @@
+name: CRS cross-asset risk monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekdays after the US close. GitHub schedules use UTC.
+    - cron: '30 23 * * 1-5'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crs-daily-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: nq_sentinel_pro
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/cache@v4
+        with:
+          path: nq_sentinel_pro/data/crs/state.json
+          key: crs-state-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: crs-state-${{ github.ref_name }}-
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Compile and run offline tests
+        run: |
+          python -m compileall -q sentinel tests local_crs_portfolio.py
+          python -m unittest discover -s tests -v
+      - name: Collect data and write daily reports
+        id: monitor
+        shell: bash
+        run: |
+          set +e
+          python -m sentinel.crs.cli --as-of "$(date -u +%F)"
+          result=$?
+          if [ "$result" -gt 2 ]; then exit "$result"; fi
+          echo "score_exit_code=$result" >> "$GITHUB_OUTPUT"
+          exit 0
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.monitor.outcome != 'skipped'
+        with:
+          name: crs-daily-${{ github.run_id }}
+          path: |
+            nq_sentinel_pro/reports/crs/*.json
+            nq_sentinel_pro/reports/crs/*.md
+            nq_sentinel_pro/reports/crs/*.html
+          if-no-files-found: warn
+          retention-days: 90
