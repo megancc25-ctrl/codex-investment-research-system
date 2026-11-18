@@ -1,6 +1,7 @@
 """Collect public market series independently; missing sources stay missing."""
 from __future__ import annotations
 from datetime import date
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from .fred import SERIES, fetch_series
 from .prices import TICKERS, fetch_prices
 from .metrics import build_features
@@ -8,9 +9,20 @@ from .metrics import build_features
 def collect(asof, fred_fetcher=fetch_series, price_fetcher=fetch_prices):
     date.fromisoformat(asof)
     fred, source_status = {}, {}
+    with ThreadPoolExecutor(max_workers=min(8, len(SERIES))) as pool:
+        futures = {pool.submit(fred_fetcher, key, asof): key for key in SERIES}
+        results = {}
+        for future in as_completed(futures):
+            key = futures[future]
+            try:
+                results[key] = (future.result(), None)
+            except Exception as exc:
+                results[key] = (None, exc)
     for key in SERIES:
         try:
-            item = fred_fetcher(key, asof)
+            item, error = results[key]
+            if error:
+                raise error
             fred[key] = item
             source_status[f"fred:{key}"] = {"status": "AVAILABLE", "observation_date": item["observation_date"],
                                             "source": item["source"], "quality": item["quality"],

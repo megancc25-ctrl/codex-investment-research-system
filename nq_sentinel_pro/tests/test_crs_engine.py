@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from sentinel.crs.config import GROUPS, MODULE_WEIGHTS, RULES
+from sentinel.crs.collector import collect
 from sentinel.crs.engine import score_snapshot, threshold_score, percentile_risk
 from sentinel.crs.state import candidate_state, transition_state
 from sentinel.crs.alerts import evaluate_alerts
@@ -47,6 +48,18 @@ def full_features(risk=False):
     return {k: record(v) for k,v in values.items()}
 
 class CRSEngineTests(unittest.TestCase):
+    def test_collector_keeps_individual_fred_failures_missing(self):
+        def fred_fetch(key, asof):
+            if key == "hy_oas":
+                raise RuntimeError("source unavailable")
+            return {"values": {}, "observation_date": asof, "source": "fixture",
+                    "quality": "CURRENT_VINTAGE", "raw_sha256": "0" * 64}
+        collection = collect("2026-11-18", fred_fetcher=fred_fetch,
+                             price_fetcher=lambda asof: ({}, {"x": {"status": "MISSING"}}))
+        self.assertNotIn("hy_oas", collection["fred"])
+        self.assertEqual(collection["source_status"]["fred:hy_oas"]["status"], "MISSING")
+        self.assertEqual(collection["source_status"]["fred:ust10y"]["status"], "AVAILABLE")
+
     def test_weights_sum_to_one_hundred_and_nq_weights_unchanged(self):
         self.assertEqual(sum(MODULE_WEIGHTS.values()), 100)
         self.assertEqual(NQ_WEIGHTS, {
