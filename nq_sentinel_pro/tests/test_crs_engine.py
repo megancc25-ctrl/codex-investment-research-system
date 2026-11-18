@@ -133,11 +133,11 @@ class CRSEngineTests(unittest.TestCase):
     def test_state_upgrade_confirmation_deescalation_and_emergency(self):
         hot = score_snapshot(full_features(risk=True))
         raw = candidate_state(hot)
-        self.assertEqual(raw, "L3")
+        self.assertEqual(raw, "L4")
         first = transition_state(raw, [])
         self.assertEqual(first["state"], "L0")
-        second = transition_state(raw, [{"state":"L0","raw_candidate":"L3"}])
-        self.assertEqual(second["state"], "L3")
+        second = transition_state(raw, [{"state":"L0","raw_candidate":"L4"}])
+        self.assertEqual(second["state"], "L4")
         pending = transition_state("L0", [{"state":"L3","raw_candidate":"L0"}])
         self.assertEqual(pending["state"], "L3")
         hist = [{"state":"L3","raw_candidate":"L0"} for _ in range(4)]

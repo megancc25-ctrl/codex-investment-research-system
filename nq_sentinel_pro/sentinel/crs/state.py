@@ -17,7 +17,7 @@ def candidate_state(score_result, emergency_market_failure=False):
     other = [v.get("score") for k, v in modules.items()
              if k not in ("credit", "liquidity") and v.get("score") is not None]
     high_independent = sum(v.get("score") is not None and v["score"] >= 50 for v in modules.values())
-    if score >= 80 and max(credit, liquidity) >= 85 and emergency_market_failure:
+    if score >= 80 and max(credit, liquidity) >= 85:
         return "L4"
     if score >= 60 and max(credit, liquidity) >= 70 and any(v >= 60 for v in other):
         return "L3"
@@ -44,7 +44,7 @@ def transition_state(raw_candidate, history=None, emergency_market_failure=False
                 count += 1
             else:
                 break
-        needed = 1 if raw_candidate == "L4" else 2
+        needed = 2
         state = raw_candidate if count >= needed else previous
         return {"state": state, "raw_candidate": raw_candidate,
                 "transition": "UPGRADE_CONFIRMED" if state == raw_candidate else "UPGRADE_PENDING",
