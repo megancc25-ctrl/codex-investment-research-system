@@ -39,6 +39,8 @@
 | 历史危机回测 | 未完成 | 不提供召回率、误报率、预警提前量或预测准确率 |
 | 完整CRS评分发布 | 未通过本轮验收 | 本轮没有生产级全量数据采集，数据门槛保持不变 |
 
+逐系列检查清单已建立：`docs/CRS_FRED_ACCEPTANCE_MATRIX.md`。其中3个OAS保持受限，其他16个均为待逐系列许可审查；没有将“FRED可下载”推断为缓存或再分发授权。
+
 ## 测试
 
 本阶段执行日志位于 `docs/CRS_PHASE10_TEST_LOG.txt`。该日志只证明本地编译和自动化测试结果；不等同于远端CI、实时采集、缓存跨运行或模型有效性证据。
@@ -54,5 +56,6 @@
 | `docs/CRS_PHASE9_AUDIT.md` | 修正raw SHA能力表述并记录时效字段语义 |
 | `docs/CRS_PHASE10_AUDIT.md` | 记录本轮核验结论、外部验收限制和变更边界 |
 | `docs/CRS_PHASE10_TEST_LOG.txt` | 保存可复核的本地验证日志 |
+| `docs/CRS_FRED_ACCEPTANCE_MATRIX.md` | 为19个系列建立授权、实时采集和PIT分离验收记录 |
 
 CRS仍为`PROVISIONAL_RESEARCH_ONLY`。没有修改main、没有创建/合并PR、没有降低数据门槛、没有上传私有持仓或真实数据快照，也没有产生交易指令。
