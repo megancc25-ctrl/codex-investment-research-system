@@ -116,6 +116,6 @@ P3 后续交付应先给出历史可用性矩阵：逐源记录可核实的历�
 ### 验证与剩余边界
 
 - `python -m compileall -q sentinel tests local_crs_portfolio.py`：通过。
-- `python -m unittest discover -s tests -v`：63 项通过（见完整日志文件）。
+- `python -m unittest discover -s tests -v`：65 项通过（见完整日志文件）。
 - 未完成实时来源稳定性验证；无实际广度、MOVE、Repo连续序列或CDX适配器，因此默认数据链可能输出 `DATA_INSUFFICIENT`，这是关键输入门的预期结果。
 - 未完成2008/2020/2022点时回测、授权独立核验或样本外验证。没有修改 NQ-Sentinel 原有权重/评分，没有上传个人持仓，没有创建 PR，也没有合并。
