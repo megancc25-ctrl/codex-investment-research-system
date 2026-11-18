@@ -1,6 +1,6 @@
 """Minimal official FRED CSV client. Current-vintage series are not PIT histories."""
 from __future__ import annotations
-import csv, hashlib, io, urllib.parse, urllib.request
+import csv, hashlib, io, json, os, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timezone
 
 SERIES = {
@@ -13,6 +13,7 @@ SERIES = {
 }
 LICENSE_RESTRICTED = {"hy_oas", "ig_oas", "ccc_oas"}
 BASE_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv"
+API_URL = "https://api.stlouisfed.org/fred/series/observations"
 
 def parse_fred_csv(raw: bytes, series_id: str):
     rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8-sig"))))
@@ -35,18 +36,67 @@ def parse_fred_csv(raw: bytes, series_id: str):
         result[day] = number
     return result
 
-def fetch_series(series_key, asof, opener=None, timeout=20):
+def _parse_api_json(raw, asof):
+    payload = json.loads(raw.decode("utf-8"))
+    observations = payload.get("observations")
+    if not isinstance(observations, list):
+        raise ValueError("Unexpected FRED API response schema")
+    result = {}
+    for row in observations:
+        day, value = row.get("date"), row.get("value")
+        if not day or day > asof or value in (None, ".", ""):
+            continue
+        datetime.strptime(day, "%Y-%m-%d")
+        number = float(value)
+        if number != number or abs(number) == float("inf"):
+            raise ValueError("Non-finite FRED observation")
+        result[day] = number
+    return result
+
+
+def _read_response(request, opener, timeout):
+    with opener(request, timeout=timeout) as response:
+        return response.read()
+
+
+def fetch_series(series_key, asof, opener=None, timeout=15, retries=2, api_key=None, sleep=time.sleep):
     if series_key not in SERIES:
         raise ValueError("FRED series key is not allowlisted")
     datetime.strptime(asof, "%Y-%m-%d")
     series_id = SERIES[series_key]
-    query = urllib.parse.urlencode({"id": series_id, "coed": asof})
-    url = BASE_URL + "?" + query
+    api_key = api_key if api_key is not None else os.environ.get("FRED_API_KEY")
+    if api_key:
+        params = {"series_id": series_id, "api_key": api_key, "file_type": "json",
+                  "observation_end": asof, "realtime_start": asof, "realtime_end": asof,
+                  "limit": 100000, "sort_order": "asc"}
+        url = API_URL + "?" + urllib.parse.urlencode(params)
+        source_kind = "FRED_API_VINTAGE_ASOF"
+    else:
+        params = {"id": series_id, "coed": asof}
+        url = BASE_URL + "?" + urllib.parse.urlencode(params)
+        source_kind = "FRED_CURRENT_VINTAGE_CSV"
     req = urllib.request.Request(url, headers={"User-Agent": "CRS-Research/1.0"})
-    open_url = opener or (lambda request: urllib.request.urlopen(request, timeout=timeout))
-    with open_url(req) as response:
-        raw = response.read()
-    values = parse_fred_csv(raw, series_id)
+    opener_fn = opener or urllib.request.urlopen
+    attempts = max(1, int(retries))
+    last_error = None
+    for attempt in range(attempts):
+        try:
+            raw = _read_response(req, opener_fn, timeout)
+            last_error = None
+            break
+        except Exception as exc:
+            last_error = exc
+            retryable = not isinstance(exc, urllib.error.HTTPError) or exc.code in (408, 429) or exc.code >= 500
+            if not retryable or attempt + 1 >= attempts:
+                break
+            sleep(min(0.25 * (attempt + 1), 1.0))
+    if last_error:
+        message = str(last_error)
+        if api_key:
+            message = message.replace(api_key, "[REDACTED]")
+        message = message.split("?", 1)[0] if "?" in message and "http" in message.lower() else message
+        raise RuntimeError(f"FRED request failed after {attempt + 1} attempt(s): {message[:160]}") from None
+    values = _parse_api_json(raw, asof) if api_key else parse_fred_csv(raw, series_id)
     values = {d: v for d, v in values.items() if d <= asof}
     if not values:
         raise ValueError("No FRED observation on or before as-of date")
@@ -54,7 +104,8 @@ def fetch_series(series_key, asof, opener=None, timeout=20):
     return {
         "series_key": series_key, "series_id": series_id, "values": values,
         "source": f"https://fred.stlouisfed.org/series/{series_id}",
-        "source_kind": "FRED_CURRENT_VINTAGE",
+        "source_kind": source_kind,
+        "vintage_date": asof if api_key else None,
         "quality": "LICENSE_RESTRICTED" if series_key in LICENSE_RESTRICTED else "CURRENT_VINTAGE",
         "license_status": "RESTRICTED" if series_key in LICENSE_RESTRICTED else "REVIEW_REQUIRED",
         "observation_date": max(values), "published_at": None, "retrieved_at": retrieved,

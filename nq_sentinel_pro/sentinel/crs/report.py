@@ -73,6 +73,15 @@ def render_markdown(report):
             key, item.get("status"), item.get("observation_date"), item.get("published_at"),
             item.get("retrieved_at"), item.get("quality"), item.get("license_status"),
             item.get("reason"))) + " |")
+    lines += ["", "### Rolling source health (up to 30 report dates)", "",
+              "| Source | Runs | Live success | Cached | Failures | Timeouts | Consecutive failures | Observation lag days | Missing published time | Quality | License | Latest reason |",
+              "|---|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|"]
+    for key, item in report.get("source_health", {}).get("sources", {}).items():
+        values = (key, item.get("window_runs"), item.get("live_success_rate_pct"), item.get("cache_uses"),
+                  item.get("failures"), item.get("timeouts"), item.get("consecutive_failures"),
+                  item.get("observation_lag_days"), item.get("published_at_missing_rate_pct"),
+                  item.get("latest_quality"), item.get("latest_license_status"), item.get("latest_reason"))
+        lines.append("| " + " | ".join(str(value if value is not None else "—").replace("|", "\\|").replace("\n", " ") for value in values) + " |")
     lines += ["", "## Governance", ""]
     lines.extend(f"- {note}" for note in score.get("notes", []))
     lines += ["", "No historical crisis validation is implied by this daily report."]

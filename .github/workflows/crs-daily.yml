@@ -27,7 +27,9 @@ jobs:
           python-version: '3.11'
       - uses: actions/cache@v4
         with:
-          path: nq_sentinel_pro/data/crs/state.json
+          path: |
+            nq_sentinel_pro/data/crs/state.json
+            nq_sentinel_pro/data/crs/source_health.json
           key: crs-state-${{ github.ref_name }}-${{ github.run_id }}
           restore-keys: crs-state-${{ github.ref_name }}-
       - name: Install dependencies
@@ -38,6 +40,8 @@ jobs:
           python -m unittest discover -s tests -v
       - name: Collect data and write daily reports
         id: monitor
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         shell: bash
         run: |
           set +e

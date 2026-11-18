@@ -18,7 +18,7 @@ MONITORING_GAPS = {
     "oas_pit_history": ("RESTRICTED_HISTORY", "HY/IG OAS use current-vintage FRED observations and restricted ICE data; no release-vintage history is available in this adapter."),
 }
 
-def collect(asof, fred_fetcher=fetch_series, price_fetcher=fetch_prices):
+def collect(asof, fred_fetcher=fetch_series, price_fetcher=fetch_prices, fred_cache=None):
     date.fromisoformat(asof)
     fred, source_status = {}, {}
     with ThreadPoolExecutor(max_workers=min(8, len(SERIES))) as pool:
@@ -36,7 +36,7 @@ def collect(asof, fred_fetcher=fetch_series, price_fetcher=fetch_prices):
             if error:
                 raise error
             fred[key] = item
-            source_status[f"fred:{key}"] = {"status": "AVAILABLE", "observation_date": item["observation_date"],
+            source_status[f"fred:{key}"] = {"status": "AVAILABLE", "fetch_status": "SUCCESS", "observation_date": item["observation_date"],
                                             "source": item["source"], "source_id": item["series_id"],
                                             "published_at": item.get("published_at"),
                                             "retrieved_at": item.get("retrieved_at"),
@@ -44,7 +44,24 @@ def collect(asof, fred_fetcher=fetch_series, price_fetcher=fetch_prices):
                                             "license_status": item.get("license_status", "REVIEW_REQUIRED"),
                                             "raw_sha256": item["raw_sha256"]}
         except Exception as exc:
-            source_status[f"fred:{key}"] = {"status": "MISSING", "source_id": SERIES[key],
+            cache_item = (fred_cache or {}).get(key)
+            if cache_item:
+                cached = dict(cache_item)
+                fred[key] = cached
+                source_status[f"fred:{key}"] = {"status": "AVAILABLE_CACHED", "fetch_status": "FAILED",
+                                             "source_id": cached.get("series_id", SERIES[key]),
+                                             "source": cached.get("source"),
+                                             "observation_date": cached.get("observation_date"),
+                                             "published_at": cached.get("published_at"),
+                                             "retrieved_at": cached.get("retrieved_at"),
+                                             "quality": cached.get("quality", "UNKNOWN"),
+                                             "license_status": cached.get("license_status", "UNKNOWN"),
+                                             "raw_sha256": cached.get("raw_sha256"),
+                                             "cache_used": True, "cache_age_days": cached.get("cache_age_days"),
+                                             "cache_max_age_days": cached.get("cache_max_age_days"),
+                                             "reason": str(exc)[:240]}
+                continue
+            source_status[f"fred:{key}"] = {"status": "MISSING", "fetch_status": "FAILED", "source_id": SERIES[key],
                                              "source": f"FRED series {SERIES[key]}",
                                              "observation_date": None, "published_at": None,
                                              "retrieved_at": datetime.now(timezone.utc).isoformat(), "quality": "MISSING",

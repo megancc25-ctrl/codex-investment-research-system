@@ -9,9 +9,10 @@ from .collector import collect
 from .config import CONFIG_SHA256
 from .decisions import decision_for_state
 from .engine import score_snapshot
+from .health import load_health_snapshots, save_health_snapshot, summarize_source_health
 from .report import write_reports
 from .state import STATE_LABELS, candidate_reasons, candidate_state, transition_state
-from .storage import connect, export_parquet, latest_reports, save_collected, save_report
+from .storage import connect, export_parquet, latest_reports, load_fred_cache, save_collected, save_report
 
 def _evidence(score_result, features, alerts):
     supporting, against, component_evidence, data_limits = [], [], [], []
@@ -83,7 +84,13 @@ def _evidence(score_result, features, alerts):
 
 def run_report(asof, database, output, parquet_directory=None, manual=None,
                emergency_market_failure=False, nq_report=None, state_history_file=None):
-    collection = collect(asof)
+    con = connect(database)
+    try:
+        fred_cache = load_fred_cache(con, asof)
+        collection = collect(asof, fred_cache=fred_cache) if fred_cache else collect(asof)
+    except Exception:
+        con.close()
+        raise
     if manual:
         collection["features"].update(manual["features"])
         collection["source_status"].update(manual["source_status"])
@@ -93,7 +100,6 @@ def run_report(asof, database, output, parquet_directory=None, manual=None,
             }
     event_flags = manual.get("events", {}) if manual else {}
     emergency_market_failure = emergency_market_failure or bool(event_flags.get("funding_market_failure"))
-    con = connect(database)
     try:
         save_collected(con, collection)
         score = score_snapshot(collection["features"], collection["histories"])
@@ -107,6 +113,10 @@ def run_report(asof, database, output, parquet_directory=None, manual=None,
                 history = []
         else:
             history = [x for x in history if x.get("asof", "") < asof]
+        health_path = Path(database).expanduser().parent / "source_health.json"
+        health_history = [x for x in load_health_snapshots(health_path) if x.get("asof") != asof]
+        source_health = summarize_source_health(health_history, asof, collection["source_status"])
+        save_health_snapshot(health_path, asof, collection["source_status"])
         candidate = candidate_state(score, emergency_market_failure=emergency_market_failure)
         reason_codes = candidate_reasons(score, emergency_market_failure=emergency_market_failure)
         state = transition_state(candidate, history,
@@ -133,6 +143,7 @@ def run_report(asof, database, output, parquet_directory=None, manual=None,
             "decision": decision_for_state(state["state"]),
             "evidence": _evidence(score, collection["features"], alerts),
             "source_status": collection["source_status"],
+            "source_health": source_health,
             "source_count": {"expected_fred_series": sum(k.startswith("fred:") for k in collection["source_status"]),
                              "available_features": len(collection["features"])},
             "integration": {
