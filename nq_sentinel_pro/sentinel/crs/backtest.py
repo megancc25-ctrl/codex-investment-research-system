@@ -1,6 +1,37 @@
 """Point-in-time crisis backtest metrics. This refuses unsupported label or vintage claims."""
 from __future__ import annotations
-from datetime import date
+from datetime import date, datetime, timezone
+import re
+
+def _has_pit_evidence(row):
+    """Require auditable source metadata; a caller-supplied boolean alone is insufficient."""
+    if row.get("pit_verified") is not True or not row.get("pit_evidence"):
+        return False
+    try:
+        decision_at = datetime.fromisoformat(row["decision_at"].replace("Z", "+00:00"))
+        if decision_at.tzinfo is None:
+            return False
+        decision_at = decision_at.astimezone(timezone.utc)
+        asof = date.fromisoformat(row["date"])
+        if decision_at.date() != asof:
+            return False
+        for evidence in row["pit_evidence"]:
+            published = datetime.fromisoformat(evidence["published_at"].replace("Z", "+00:00"))
+            retrieved = datetime.fromisoformat(evidence["retrieved_at"].replace("Z", "+00:00"))
+            observed = date.fromisoformat(evidence["observation_date"])
+            if published.tzinfo is None or retrieved.tzinfo is None:
+                return False
+            if observed > asof or published > retrieved or retrieved > decision_at or published > decision_at:
+                return False
+            if not evidence.get("source") or not evidence.get("vintage_id"):
+                return False
+            if evidence.get("license_status") not in ("AUTHORIZED", "INTERNAL_USE_AUTHORIZED"):
+                return False
+            if not re.fullmatch(r"[0-9a-fA-F]{64}", evidence.get("raw_sha256", "")):
+                return False
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
+    return True
 
 def evaluate_crisis_backtest(rows, event_windows, signal_threshold=60, lead_days=20):
     if not event_windows:
@@ -11,10 +42,10 @@ def evaluate_crisis_backtest(rows, event_windows, signal_threshold=60, lead_days
         raise ValueError("Duplicate as-of dates")
     for row in ordered:
         date.fromisoformat(row["date"])
-    unverified = [r["date"] for r in ordered if not r.get("pit_verified", False)]
+    unverified = [r["date"] for r in ordered if not _has_pit_evidence(r)]
     incomplete = [r["date"] for r in ordered if r.get("score") is None or r.get("coverage_pct", 0) < 85]
     if unverified or incomplete:
-        return {"status": "BLOCKED", "reason": "POINT_IN_TIME_OR_SCORE_COVERAGE_GAP",
+        return {"status": "BLOCKED", "reason": "POINT_IN_TIME_EVIDENCE_OR_SCORE_COVERAGE_GAP",
                 "unverified_dates": unverified[:20], "incomplete_score_dates": incomplete[:20],
                 "metrics": None}
     windows = []

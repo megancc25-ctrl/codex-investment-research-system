@@ -48,7 +48,10 @@ def save_collected(con, collection):
              record.get("source") or "unknown", record.get("source") or "unknown",
              record.get("quality") or "UNKNOWN", int(record.get("age_days") or 0),
              json.dumps({"observation_date": record.get("observation_date"),
-                         "published_at": record.get("published_at"), "stale": record.get("stale", False)})])
+                        "published_at": record.get("published_at"),
+                        "retrieved_at": record.get("retrieved_at"),
+                        "license_status": record.get("license_status", "REVIEW_REQUIRED"),
+                        "stale": record.get("stale", False)})])
 
 def latest_reports(con, limit=10):
     rows = con.execute("SELECT payload FROM crs_reports ORDER BY asof_date DESC LIMIT ?", [limit]).fetchall()

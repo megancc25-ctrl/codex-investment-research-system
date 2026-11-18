@@ -12,6 +12,7 @@
   },
   "min_total_coverage_pct": 85,
   "critical_modules": ["credit", "liquidity"],
+  "critical_metrics": ["breadth_above_200dma", "move_level", "repo_rate_percentile", "hy_oas_bp", "ig_oas_bp"],
   "threshold_percentile_weight": 0.6,
   "history_percentile_weight": 0.4,
   "percentile_min_observations": 252,

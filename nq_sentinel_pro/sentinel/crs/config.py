@@ -13,6 +13,7 @@ PERCENTILE_WINDOW = int(CONFIG["percentile_window_observations"])
 THRESHOLD_WEIGHT = float(CONFIG["threshold_percentile_weight"])
 PERCENTILE_WEIGHT = float(CONFIG["history_percentile_weight"])
 CRITICAL_MODULES = tuple(CONFIG["critical_modules"])
+CRITICAL_METRICS = tuple(CONFIG["critical_metrics"])
 RULES = {
     key: (value["module"], value["group"], value["polarity"],
           [(float(level), float(score)) for level, score in value["levels"]])

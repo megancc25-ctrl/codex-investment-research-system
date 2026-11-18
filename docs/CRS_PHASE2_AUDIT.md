@@ -86,3 +86,36 @@ P3 后续交付应先给出历史可用性矩阵：逐源记录可核实的历�
 3. P2：以精确覆盖率比较门槛；记录 L4 触发类型；补齐用户列出的数值边界测试。
 4. P3：编制三份数据/回测文档，并将 PIT 标记从任意布尔输入提升为可审计证据引用；先盘点数据可得性，再决定是否有条件做事件回测。
 5. 完成上述修改并保存完整测试日志后，再评估是否创建 PR。当前不创建 PR、不合并，也不修改 main。
+
+
+## 第二阶段实施结果（2026-11-18）
+
+### 已实施
+
+- **P0**：成功写出诊断报告时 CLI 返回 0；运行异常返回 1；数据不足通过 `score_status=DATA_INSUFFICIENT` 表示，满足全部发布门时为 `SCORE_PUBLISHED`。报告标记 `pipeline_status=PIPELINE_SUCCESS`。GitHub Actions Summary 展示覆盖率、关键缺失模块/指标、评分是否发布、分数、状态、L4原因及缺失/代理来源。CLI、测试/安装或摘要流程失败时在 Summary 显示 `PIPELINE_FAILED`。
+- **P1**：新增关键指标发布门：股票广度、MOVE、Repo 百分位、HY OAS、IG OAS 缺一不可；覆盖率门槛比较未舍入值。来源/派生指标保留来源、观察/发布/检索时间、质量和许可状态；MISSING、PROXY_ONLY、US_ONLY 和历史受限来源单独列出。完整矩阵见 `CRS_DATA_COVERAGE_MATRIX.md`。
+- **P2**：状态历史保存 L4 候选原因（信用模块、流动性模块、人工紧急覆盖）。新增 79.9/80、84.9/85、关键指标缺失及 as-of 前历史序列测试。百分位输入在特征构建阶段按 as-of 过滤，并排除当前观测。
+- **P3**：回测输入必须包含决策时点、来源、观察/发布/检索时间、vintage ID、SHA-256与授权状态；裸 `pit_verified=true` 会被拒绝。可用性和危机窗口判定见 `CRS_BACKTEST_READINESS.md`。该检查验证证据结构与时间顺序，不证明调用方声明的哈希/授权真实有效。
+
+### 文件修改及原因
+
+| 文件 | 修改原因 |
+|---|---|
+| `.github/workflows/crs-daily.yml` | 让数据不足与流程故障在 Actions Summary 中可见，修正绿色成功的歧义 |
+| `nq_sentinel_pro/sentinel/crs/actions_summary.py` | 新增运行摘要渲染器，显示分数门状态、缺失指标和来源失败 |
+| `cli.py`、`runner.py`、`report.py` | 明确流程/评分两种状态；错误返回失败；把缺失项和来源血缘写入报告 |
+| `collector.py`、`fred.py`、`metrics.py`、`manual.py`、`storage.py` | 补齐运行级来源、观察/发布/检索时间、质量和许可状态；登记未接入/代理指标 |
+| `config.py`、`crs_v1.json`、`engine.py` | 将关键指标列为完整评分必需输入；不再使用显示舍入值判定85%门槛 |
+| `backtest.py` | 拒绝无来源时间、vintage、哈希或授权状态的历史样本 |
+| `tests/test_crs_engine.py` | 增加状态、覆盖率、关键缺失、来源元数据、PIT拒绝与CLI状态测试 |
+| `docs/CRS_DATA_COVERAGE_MATRIX.md` | 逐项记录来源、范围证据、发布时间、修订和许可限制 |
+| `docs/CRS_BACKTEST_READINESS.md` | 记录2008/2020/2022的PIT准备度，明确不伪造历史结果 |
+| `docs/CRS_PHASE2_TEST_LOG.txt` | 保存本次编译与离线测试完整运行记录 |
+| `nq_sentinel_pro/CRS_README.md` | 更新CLI退出码、运行状态和新评分发布门说明 |
+
+### 验证与剩余边界
+
+- `python -m compileall -q sentinel tests local_crs_portfolio.py`：通过。
+- `python -m unittest discover -s tests -v`：63 项通过（见完整日志文件）。
+- 未完成实时来源稳定性验证；无实际广度、MOVE、Repo连续序列或CDX适配器，因此默认数据链可能输出 `DATA_INSUFFICIENT`，这是关键输入门的预期结果。
+- 未完成2008/2020/2022点时回测、授权独立核验或样本外验证。没有修改 NQ-Sentinel 原有权重/评分，没有上传个人持仓，没有创建 PR，也没有合并。

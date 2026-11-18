@@ -56,6 +56,7 @@ def fetch_series(series_key, asof, opener=None, timeout=20):
         "source": f"https://fred.stlouisfed.org/series/{series_id}",
         "source_kind": "FRED_CURRENT_VINTAGE",
         "quality": "LICENSE_RESTRICTED" if series_key in LICENSE_RESTRICTED else "CURRENT_VINTAGE",
+        "license_status": "RESTRICTED" if series_key in LICENSE_RESTRICTED else "REVIEW_REQUIRED",
         "observation_date": max(values), "published_at": None, "retrieved_at": retrieved,
         "raw_sha256": hashlib.sha256(raw).hexdigest(),
         "unit_note": "FRED source units are retained; OAS series are percent, convert to bp before scoring.",

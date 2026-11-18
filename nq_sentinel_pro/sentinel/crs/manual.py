@@ -40,6 +40,7 @@ def load_manual_evidence(path, asof):
         features[key] = {"value": value, "quality": record.get("quality", "UNKNOWN"),
                          "source": source_url, "observation_date": str(observation_date),
                          "published_at": published.isoformat(), "retrieved_at": retrieved.isoformat(),
+                         "license_status": record.get("license_status", "REVIEW_REQUIRED"),
                          "stale": False, "age_days": (date.fromisoformat(asof)-observation_date).days}
     for key, record in payload.get("events", {}).items():
         if key not in EVENT_KEYS:

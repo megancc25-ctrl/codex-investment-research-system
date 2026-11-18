@@ -1,7 +1,7 @@
 """Deterministic cross-asset scoring with explicit coverage and no missing-value zero fill."""
 from __future__ import annotations
 import math
-from .config import (CRITICAL_MODULES, GROUPS, MIN_PERCENTILE_HISTORY, MIN_TOTAL_COVERAGE,
+from .config import (CRITICAL_METRICS, CRITICAL_MODULES, GROUPS, MIN_PERCENTILE_HISTORY, MIN_TOTAL_COVERAGE,
                      MODULE_WEIGHTS, PERCENTILE_WINDOW, PERCENTILE_WEIGHT,
                      RULES, THRESHOLD_WEIGHT)
 
@@ -30,12 +30,20 @@ def percentile_risk(history, current, polarity):
     rank = 100.0 * sum(x <= current for x in clean) / len(clean)
     return rank if polarity == "high" else 100.0 - rank
 
+def coverage_sufficient(coverage_pct):
+    """Gate on unrounded coverage; display rounding must not change publication eligibility."""
+    return isinstance(coverage_pct, (int, float)) and math.isfinite(float(coverage_pct)) and coverage_pct >= MIN_TOTAL_COVERAGE
+
 def _assess_metric(name, record, histories):
     if isinstance(record, dict):
         value, quality = record.get("value"), record.get("quality", "UNKNOWN")
         stale, source, age_days = bool(record.get("stale", False)), record.get("source"), record.get("age_days")
+        published_at, retrieved_at = record.get("published_at"), record.get("retrieved_at")
+        license_status = record.get("license_status", "REVIEW_REQUIRED")
     else:
         value, quality, stale, source, age_days = record, "UNVERIFIED_VENDOR_PROXY", False, None, None
+        published_at = retrieved_at = None
+        license_status = "REVIEW_REQUIRED"
     base = threshold_score(name, value)
     if base is None or stale:
         return None
@@ -45,7 +53,9 @@ def _assess_metric(name, record, histories):
     return {"value": value, "threshold_score": base, "percentile_score": pct,
             "score": round(max(0.0, min(100.0, score)), 2),
             "method": "threshold_plus_past_percentile" if pct is not None else "threshold_only_provisional",
-            "quality": quality, "source": source, "age_days": age_days}
+            "quality": quality, "source": source, "age_days": age_days,
+            "published_at": published_at, "retrieved_at": retrieved_at,
+            "license_status": license_status}
 
 def score_snapshot(features, histories=None):
     histories = histories or {}
@@ -77,8 +87,11 @@ def score_snapshot(features, histories=None):
             "status": "AVAILABLE" if coverage == 1 else "PARTIAL" if present else "MISSING",
         }
 
-    coverage = round(weighted_coverage, 1)
+    coverage_raw = weighted_coverage
+    coverage = round(coverage_raw, 1)
     critical_missing = [m for m in CRITICAL_MODULES if modules[m]["score"] is None]
+    critical_metrics_missing = [name for name in CRITICAL_METRICS
+                                if details.get(name, {}).get("status") != "AVAILABLE"]
     if available_weight:
         contributions = {m: MODULE_WEIGHTS[m] * modules[m]["score"] / 100
                          for m in MODULE_WEIGHTS if modules[m]["score"] is not None}
@@ -86,7 +99,8 @@ def score_snapshot(features, histories=None):
         normalized = round(100 * partial_sum / available_weight, 2)
     else:
         partial_sum = normalized = None
-    publishable = coverage >= MIN_TOTAL_COVERAGE and not critical_missing and normalized is not None
+    publishable = (coverage_sufficient(coverage_raw) and not critical_missing
+                   and not critical_metrics_missing and normalized is not None)
     score = normalized if publishable else None
 
     if not qualities:
@@ -100,8 +114,10 @@ def score_snapshot(features, histories=None):
 
     return {
         "score": score, "status": "RESEARCH_ONLY_UNVALIDATED" if publishable else "INSUFFICIENT_DATA",
-        "data_coverage_pct": coverage, "data_confidence": confidence,
-        "critical_modules_missing": critical_missing, "missing_metrics": missing,
+        "data_coverage_pct": coverage, "data_coverage_unrounded_pct": coverage_raw,
+        "data_confidence": confidence,
+        "critical_modules_missing": critical_missing,
+        "critical_metrics_missing": critical_metrics_missing, "missing_metrics": missing,
         "modules": modules, "metric_details": details,
         "partial_contribution_sum_not_score": partial_sum,
         "renormalized_diagnostic_not_validated": normalized, "score_is_probability": False,

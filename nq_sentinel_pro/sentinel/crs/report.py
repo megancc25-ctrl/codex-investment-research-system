@@ -25,10 +25,12 @@ def render_markdown(report):
     state = report["state_machine"]
     lines = [
         f"# CRS 1.0 Daily Cross-Asset Risk Report  {report['asof']}", "",
+        f"- Pipeline status: **{report.get('pipeline_status', 'UNKNOWN')}**; score status: **{report.get('score_status', 'UNKNOWN')}**",
         f"- Score: **{score['score'] if score['score'] is not None else 'N/A'} / 100**",
         f"- Score status: **{score['status']}**",
         f"- System state: **{state['state']}** ({state.get('label', state['state'])})",
         f"- Data coverage: **{score['data_coverage_pct']:.1f}%**; confidence: **{score['data_confidence']}**",
+        f"- Critical missing metrics: **{', '.join(score.get('critical_metrics_missing', [])) or 'none'}**",
         f"- Generated: {report['generated_at']}", "",
         "> Research-only descriptor. The score is not a crisis probability or a trading instruction.", "",
         "## Seven modules", "",
@@ -54,10 +56,16 @@ def render_markdown(report):
               "## Data gaps and source diagnostics", ""]
     gaps = score.get("critical_modules_missing", [])
     lines.append("- Critical modules missing: " + (", ".join(gaps) if gaps else "none"))
+    lines.append("- Critical metrics missing: " + (", ".join(score.get("critical_metrics_missing", [])) if score.get("critical_metrics_missing") else "none"))
     lines.append("- Missing metrics: " + (", ".join(score.get("missing_metrics", [])) if score.get("missing_metrics") else "none"))
+    lines += ["", "### Source provenance", "",
+              "| Source / indicator | Status | Observation | Published | Retrieved | Quality | License | Reason |",
+              "|---|---|---|---|---|---|---|---|"]
     for key, item in report.get("source_status", {}).items():
-        if item.get("status") != "AVAILABLE":
-            lines.append(f"- {key}: {item.get('reason', 'MISSING')}")
+        lines.append("| " + " | ".join(str(value or "—").replace("|", "\\|").replace("\n", " ") for value in (
+            key, item.get("status"), item.get("observation_date"), item.get("published_at"),
+            item.get("retrieved_at"), item.get("quality"), item.get("license_status"),
+            item.get("reason"))) + " |")
     lines += ["", "## Governance", ""]
     lines.extend(f"- {note}" for note in score.get("notes", []))
     lines += ["", "No historical crisis validation is implied by this daily report."]

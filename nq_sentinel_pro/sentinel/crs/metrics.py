@@ -37,13 +37,16 @@ def _correlation(left, right, window):
     corr = sum((x-mx)*(y-my) for x,y in zip(xs,ys)) / (vx*vy)**0.5
     return [(days[-1], max(-1.0, min(1.0, corr)))]
 
-def _record(value, source, quality, obs_date, asof, stale=False):
+def _record(value, source, quality, obs_date, asof, stale=False, provenance=None):
     if value is None:
         return None
     age = (date.fromisoformat(asof) - date.fromisoformat(obs_date)).days
+    provenance = provenance or {}
     return {"value": value, "source": source, "quality": "STALE_MONTHLY" if stale else quality,
-            "observation_date": obs_date, "published_at": None, "age_days": age,
-            "stale": stale}
+            "observation_date": obs_date, "published_at": provenance.get("published_at"),
+            "retrieved_at": provenance.get("retrieved_at"),
+            "license_status": provenance.get("license_status", "REVIEW_REQUIRED"),
+            "age_days": age, "stale": stale}
 
 def _latest_fred(fred, key):
     item = fred.get(key)
@@ -60,13 +63,24 @@ def _common_change(fred, a, b, lag=20):
     d = common[-1]
     return (left[common[-1]] - left[common[-1-lag]]) * 100, d
 
-def build_features(prices, fred, asof):
+def build_features(prices, fred, asof, price_status=None):
     asof = str(asof)
     features, histories = {}, {}
     price_series = {k: _clean(v, asof) for k, v in prices.items()}
     fred_series = {k: _clean(v.get("values", {}), asof) for k, v in fred.items()}
-    price_meta = {k: v for k, v in prices.items() if isinstance(v, dict) and "values" not in v}
+    price_meta = price_status or {k: v for k, v in prices.items() if isinstance(v, dict) and "values" not in v}
     fred_meta = fred
+
+    def provenance_for(source):
+        for meta in (*fred_meta.values(), *price_meta.values()):
+            if (isinstance(meta, dict) and meta.get("source")
+                    and (str(source).startswith(meta["source"]) or meta["source"] in str(source))):
+                return meta
+        if "proxy" in str(source).lower() or "yahoo" in str(source).lower():
+            available = [x for x in price_meta.values() if isinstance(x, dict) and x.get("retrieved_at")]
+            if available:
+                return max(available, key=lambda x: x["retrieved_at"])
+        return {}
 
     def put(name, rows, source, quality, transform=lambda x: x, stale_after=5):
         rows = [(d, transform(v)) for d, v in rows]
@@ -76,7 +90,8 @@ def build_features(prices, fred, asof):
             return
         day, value = current
         features[name] = _record(value, source, quality, day, asof,
-                                 (date.fromisoformat(asof)-date.fromisoformat(day)).days > stale_after)
+                                 (date.fromisoformat(asof)-date.fromisoformat(day)).days > stale_after,
+                                 provenance_for(source))
 
     # Equity and cross-asset traded proxies.
     for key, metric in (("ndx", "ndx_drawdown_63d"), ("sox", "sox_drawdown_63d")):
@@ -89,10 +104,12 @@ def build_features(prices, fred, asof):
                 d, current = rows[-1]
                 avg = sum(v for _, v in rows[-200:]) / 200
                 features["ndx_below_200dma"] = _record(current < avg, meta.get("source", "Yahoo Finance"),
-                    meta.get("quality", "UNVERIFIED_VENDOR_PROXY"), d, asof, (date.fromisoformat(asof)-date.fromisoformat(d)).days > 5)
+                    meta.get("quality", "UNVERIFIED_VENDOR_PROXY"), d, asof,
+                    (date.fromisoformat(asof)-date.fromisoformat(d)).days > 5, meta)
                 gap = max(0.0, (avg-current)/avg) if avg else None
                 features["ndx_gap_below_200dma"] = _record(gap, meta.get("source", "Yahoo Finance"),
-                    meta.get("quality", "UNVERIFIED_VENDOR_PROXY"), d, asof, (date.fromisoformat(asof)-date.fromisoformat(d)).days > 5)
+                    meta.get("quality", "UNVERIFIED_VENDOR_PROXY"), d, asof,
+                    (date.fromisoformat(asof)-date.fromisoformat(d)).days > 5, meta)
             put("ndx_return_20d", _return_series(rows, 20), meta.get("source", "Yahoo Finance"), meta.get("quality", "UNVERIFIED_VENDOR_PROXY"))
         else:
             put(metric, dd, meta.get("source", "Yahoo Finance"), meta.get("quality", "UNVERIFIED_VENDOR_PROXY"))

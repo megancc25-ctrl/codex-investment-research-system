@@ -43,9 +43,34 @@ jobs:
           set +e
           python -m sentinel.crs.cli --as-of "$(date -u +%F)"
           result=$?
-          if [ "$result" -gt 2 ]; then exit "$result"; fi
-          echo "score_exit_code=$result" >> "$GITHUB_OUTPUT"
-          exit 0
+          set -e
+          if [ "$result" -ne 0 ]; then
+            {
+              echo "## CRS daily report"
+              echo "- Pipeline status: **PIPELINE_FAILED**"
+              echo "- CLI exit code: `$result`"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit "$result"
+          fi
+          if ! python -m sentinel.crs.actions_summary \
+            --report "reports/crs/CRS_DAILY_$(date -u +%F).json" \
+            --summary "$GITHUB_STEP_SUMMARY"; then
+            {
+              echo "## CRS daily report"
+              echo "- Pipeline status: **PIPELINE_FAILED**"
+              echo "- Reason: report summary could not be generated."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+      - name: Summarize pre-monitor pipeline failure
+        if: failure() && steps.monitor.outcome == 'skipped'
+        shell: bash
+        run: |
+          {
+            echo "## CRS daily report"
+            echo "- Pipeline status: **PIPELINE_FAILED**"
+            echo "- Reason: dependency installation or offline compile/tests failed before data collection."
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always() && steps.monitor.outcome != 'skipped'
         with:

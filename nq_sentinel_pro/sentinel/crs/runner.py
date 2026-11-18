@@ -10,7 +10,7 @@ from .config import CONFIG_SHA256
 from .decisions import decision_for_state
 from .engine import score_snapshot
 from .report import write_reports
-from .state import STATE_LABELS, candidate_state, transition_state
+from .state import STATE_LABELS, candidate_reasons, candidate_state, transition_state
 from .storage import connect, export_parquet, latest_reports, save_collected, save_report
 
 def _evidence(score_result, features, alerts):
@@ -54,13 +54,17 @@ def run_report(asof, database, output, parquet_directory=None, manual=None,
         else:
             history = [x for x in history if x.get("asof", "") < asof]
         candidate = candidate_state(score, emergency_market_failure=emergency_market_failure)
+        reason_codes = candidate_reasons(score, emergency_market_failure=emergency_market_failure)
         state = transition_state(candidate, history,
-                                 emergency_market_failure=emergency_market_failure)
+                                 emergency_market_failure=emergency_market_failure,
+                                 candidate_reason_codes=reason_codes)
         state["label"] = STATE_LABELS.get(state["state"], state["state"])
         alerts = evaluate_alerts(collection["features"], event_flags)
         report = {
             "schema_version": "crs-report-1.0", "crs_version": __version__,
             "config_sha256": CONFIG_SHA256,
+            "pipeline_status": "PIPELINE_SUCCESS",
+            "score_status": "SCORE_PUBLISHED" if score["score"] is not None else "DATA_INSUFFICIENT",
             "asof": asof, "generated_at": datetime.now(timezone.utc).isoformat(),
             "score_result": score, "state_machine": state, "alerts": alerts,
             "decision": decision_for_state(state["state"]),
@@ -84,11 +88,12 @@ def run_report(asof, database, output, parquet_directory=None, manual=None,
         if state_file:
             state_file.parent.mkdir(parents=True, exist_ok=True)
             state_history = history + [{"asof": asof, "state": state["state"],
-                                        "raw_candidate": state["raw_candidate"]}]
+                                        "raw_candidate": state["raw_candidate"],
+                                        "candidate_reason_codes": state["candidate_reason_codes"]}]
             state_file.write_text(json.dumps(state_history[-10:], indent=2) + "\n", encoding="utf-8")
-        paths = write_reports(report, output)
         if parquet_directory:
             export_parquet(con, parquet_directory)
+        paths = write_reports(report, output)
         return report, paths
     finally:
         con.close()
