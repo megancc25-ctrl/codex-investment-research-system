@@ -23,11 +23,13 @@ test_feature_provenance_retains_source_times_and_license_status (test_crs_engine
 test_fred_feature_changes_convert_percentage_points_to_basis_points (test_crs_engine.CRSEngineTests.test_fred_feature_changes_convert_percentage_points_to_basis_points) ... ok
 test_fred_oas_series_is_kept_in_source_units_before_conversion (test_crs_engine.CRSEngineTests.test_fred_oas_series_is_kept_in_source_units_before_conversion) ... ok
 test_group_cap_prevents_correlated_metrics_stacking (test_crs_engine.CRSEngineTests.test_group_cap_prevents_correlated_metrics_stacking) ... ok
+test_housing_feature_preserves_fred_source_quality_and_retrieval (test_crs_engine.CRSEngineTests.test_housing_feature_preserves_fred_source_quality_and_retrieval) ... ok
 test_l4_threshold_edges_and_reason_codes (test_crs_engine.CRSEngineTests.test_l4_threshold_edges_and_reason_codes) ... ok
 test_liquidity_alert_requires_both_sync_selloff_and_funding_stress (test_crs_engine.CRSEngineTests.test_liquidity_alert_requires_both_sync_selloff_and_funding_stress) ... ok
 test_local_private_overlay_calculates_only_user_supplied_stress (test_crs_engine.CRSEngineTests.test_local_private_overlay_calculates_only_user_supplied_stress) ... ok
 test_manual_evidence_rejects_missing_publication_time_and_future_dates (test_crs_engine.CRSEngineTests.test_manual_evidence_rejects_missing_publication_time_and_future_dates) ... ok
 test_manual_funding_failure_forces_emergency_state (test_crs_engine.CRSEngineTests.test_manual_funding_failure_forces_emergency_state) ... ok
+test_market_proxy_feature_retains_vendor_retrieval_metadata (test_crs_engine.CRSEngineTests.test_market_proxy_feature_retains_vendor_retrieval_metadata) ... ok
 test_missing_ai_satellite_data_is_explicit (test_crs_engine.CRSEngineTests.test_missing_ai_satellite_data_is_explicit) ... ok
 test_missing_inputs_are_not_zero_and_critical_gate_blocks (test_crs_engine.CRSEngineTests.test_missing_inputs_are_not_zero_and_critical_gate_blocks) ... ok
 test_partial_coverage_gate_does_not_publish_score (test_crs_engine.CRSEngineTests.test_partial_coverage_gate_does_not_publish_score) ... ok
@@ -72,7 +74,7 @@ test_private_unknown_not_cash (test_system.TestSentinel.test_private_unknown_not
 test_reject_path_traversal_date (test_system.TestSentinel.test_reject_path_traversal_date) ... ok
 
 ----------------------------------------------------------------------
-Ran 63 tests in 1.923s
+Ran 65 tests in 1.926s
 
 OK
 

@@ -216,6 +216,41 @@ class CRSEngineTests(unittest.TestCase):
         self.assertEqual(item["quality"], "LICENSE_RESTRICTED")
         self.assertEqual(item["license_status"], "RESTRICTED")
 
+    def test_housing_feature_preserves_fred_source_quality_and_retrieval(self):
+        base = date(2025, 10, 31)
+        home, cpi = {}, {}
+        for i in range(13):
+            day = (base + timedelta(days=30*i)).isoformat()
+            home[day], cpi[day] = 100 + i, 100 + 0.2*i
+        retrieved = "2026-11-18T01:00:00+00:00"
+        common = {"source": "https://fred.stlouisfed.org/series/fixture",
+                  "quality": "CURRENT_VINTAGE", "published_at": None,
+                  "retrieved_at": retrieved, "license_status": "REVIEW_REQUIRED"}
+        fred = {"case_shiller": {**common, "values": home}, "cpi": {**common, "values": cpi}}
+        features, _ = build_features({}, fred, "2026-11-18")
+        item = features["real_home_price_yoy_pct"]
+        self.assertEqual(item["quality"], "CURRENT_VINTAGE")
+        self.assertEqual(item["retrieved_at"], retrieved)
+        self.assertEqual(item["license_status"], "REVIEW_REQUIRED")
+
+    def test_market_proxy_feature_retains_vendor_retrieval_metadata(self):
+        base = date(2026, 10, 20)
+        symbols = ("ndx", "sox", "bond_total_return_proxy", "gold_proxy", "dxy_proxy")
+        prices = {symbol: {} for symbol in symbols}
+        for i in range(25):
+            day = (base + timedelta(days=i)).isoformat()
+            for multiplier, symbol in enumerate(symbols, start=1):
+                prices[symbol][day] = 100 + i * multiplier
+        status = {symbol: {"source": "Yahoo Finance via yfinance", "quality": "UNVERIFIED_VENDOR_PROXY",
+                           "retrieved_at": f"2026-11-18T01:0{index}:00+00:00",
+                           "license_status": "REVIEW_REQUIRED"}
+                  for index, symbol in enumerate(symbols)}
+        features, _ = build_features(prices, {}, "2026-11-18", price_status=status)
+        item = features["stock_return_20d"]
+        self.assertEqual(item["retrieved_at"], status["ndx"]["retrieved_at"])
+        self.assertEqual(item["license_status"], "REVIEW_REQUIRED")
+        self.assertIn("Yahoo Finance", item["source"])
+
     def test_feature_history_excludes_current_and_future_observations(self):
         base = date(2025, 1, 1)
         values = {(base + timedelta(days=i)).isoformat(): 3.0 + i * 0.01 for i in range(300)}

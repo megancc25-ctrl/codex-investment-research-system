@@ -189,9 +189,10 @@ def build_features(prices, fred, asof, price_status=None):
         real_growth = ((hp_map[current_month] / cpi_map[current_month]) /
                        (hp_map[prior_month] / cpi_map[prior_month]) - 1) * 100
         meta = fred_meta["case_shiller"]
-        features["real_home_price_yoy_pct"] = _record(real_growth, meta["source"], "STALE_MONTHLY",
+        features["real_home_price_yoy_pct"] = _record(real_growth, meta["source"], meta["quality"],
                                                        current_month, asof,
-                                                       (date.fromisoformat(asof)-date.fromisoformat(current_month)).days > 75)
+                                                       (date.fromisoformat(asof)-date.fromisoformat(current_month)).days > 75,
+                                                       meta)
         histories["real_home_price_yoy_pct"] = [
             ((hp_map[common_months[i]] / cpi_map[common_months[i]]) /
              (hp_map[common_months[i-12]] / cpi_map[common_months[i-12]]) - 1) * 100
@@ -203,8 +204,9 @@ def build_features(prices, fred, asof, price_status=None):
         prior = sales[-13][1]
         growth = (value / prior - 1) * 100 if prior else None
         meta = fred_meta["home_sales"]
-        features["home_sales_yoy_pct"] = _record(growth, meta["source"], "STALE_MONTHLY", d, asof,
-                                                  (date.fromisoformat(asof)-date.fromisoformat(d)).days > 75)
+        features["home_sales_yoy_pct"] = _record(growth, meta["source"], meta["quality"], d, asof,
+                                                  (date.fromisoformat(asof)-date.fromisoformat(d)).days > 75,
+                                                  meta)
         histories["home_sales_yoy_pct"] = [
             (sales[i][1] / sales[i-12][1] - 1) * 100 for i in range(12, len(sales)-1) if sales[i-12][1]
         ]
@@ -222,12 +224,20 @@ def build_features(prices, fred, asof, price_status=None):
         corr_rows = _correlation(left, right, 20)
         if corr_rows:
             features[feature] = _record(corr_rows[-1][1], f"{a}/{b} Yahoo return proxies",
-                                        "UNVERIFIED_VENDOR_PROXY", corr_rows[-1][0], asof)
+                                        "UNVERIFIED_VENDOR_PROXY", corr_rows[-1][0], asof,
+                                        provenance=provenance_for(f"{a}/{b} Yahoo return proxies"))
             histories[feature] = []
-    if all(x is not None for x in (stock, bond, gold)):
+    joint_records = [features.get(k) for k in
+                     ("stock_return_20d", "bond_return_20d", "gold_return_20d")]
+    joint_dates = [x.get("observation_date") for x in joint_records if x]
+    if all(x is not None for x in (stock, bond, gold)) and len(joint_dates) == 3 and len(set(joint_dates)) == 1:
         quality = "UNVERIFIED_VENDOR_PROXY"
+        joint_date = joint_dates[0]
+        joint_stale = any(x.get("stale", False) for x in joint_records)
         features["synchronized_three_asset_down_20d"] = _record(all(x < 0 for x in (stock,bond,gold)),
-                                                                  "NDX / IEF / GLD proxies", quality, asof, asof)
+            "NDX / IEF / GLD proxies", quality, joint_date, asof, joint_stale,
+            provenance_for("NDX / IEF / GLD proxies"))
         features["synchronized_three_asset_loss_5pct"] = _record(all(x <= -0.05 for x in (stock,bond,gold)),
-                                                                   "NDX / IEF / GLD proxies", quality, asof, asof)
+            "NDX / IEF / GLD proxies", quality, joint_date, asof, joint_stale,
+            provenance_for("NDX / IEF / GLD proxies"))
     return features, histories
