@@ -23,8 +23,9 @@
 - 新增独立的 `data/crs/fred_cache.duckdb`，与主 `crs.duckdb`、状态机JSON及来源健康JSON分开管理。
 - GitHub Actions为该数据库配置独立缓存步骤、独立键和同分支restore-key。状态机、健康快照和FRED缓存不会互相覆盖。
 - 只有 `license_status=APPROVED_FOR_INTERNAL_CACHE`、`cache_authorization`明确批准，且series ID匹配allowlist、source URL是对应FRED系列页、SHA-256格式正确、检索时间不晚于as-of、观察值日期有效的实时序列才可写入缓存。
+- 每个缓存批次另算规范化观察日/数值SHA-256；恢复时重算校验。供应商响应SHA-256单独保留，但不声称能由它重建未归档的原始HTTP字节。
 - `CACHE_LICENSE_APPROVALS` 默认为空；受限OAS无论如何都拒绝。只有逐系列许可审查完成后，才可显式更新批准表。
-- 读缓存时重新验证来源ID、来源URL、质量、授权标记、原始响应SHA-256和检索日期。超过日频14天、周频35天、月频120天的新鲜度上限时不回退，并计入过期数量。
+- 读缓存时检查来源ID、来源URL、质量、授权标记及原始响应SHA-256字段的格式/行间一致性，并重新计算规范化序列SHA-256。原始HTTP响应字节未归档，因此不能重算原始响应SHA-256，也不能把它表述为原始来源真实性证明。超过日频14天、周频35天、月频120天的新鲜度上限时不回退，并计入过期数量。
 - `crs_fred_vintages` 仍是历史vintage表；独立FRED缓存仅保留每个获准序列的最新抓取批次，不替代历史PIT存档。
 
 ### 2. 采集结果逐项计数
@@ -85,7 +86,7 @@
 | `nq_sentinel_pro/sentinel/crs/feature_status.py` | 统一状态和值解析，未知、stale或不匹配时fail-closed |
 | `nq_sentinel_pro/sentinel/crs/alerts.py` | 告警层使用共享状态解析，报告同步状态与数据限制 |
 | `nq_sentinel_pro/sentinel/crs/runner.py` | 创建并恢复独立缓存数据库；报告实时、缓存、过期、不合格和缺失计数；证据层复用状态解析 |
-| `nq_sentinel_pro/sentinel/crs/storage.py` | 独立缓存DB schema；保存/加载授权通过且溯源完整的数据；拒绝过期、restricted和不完整来源 |
+| `nq_sentinel_pro/sentinel/crs/storage.py` | 独立缓存DB schema；保存/加载授权通过且溯源完整的数据；校验规范化内容哈希；拒绝过期、restricted和不完整来源 |
 | `nq_sentinel_pro/sentinel/crs/fred.py` | 加入默认空的许可批准映射；受限系列不可通过映射绕过 |
 | `nq_sentinel_pro/sentinel/crs/collector.py` | 报告缓存授权状态，不混淆live与cached |
 | `nq_sentinel_pro/sentinel/crs/report.py` | 展示FRED本次采集及缓存计数 |
@@ -97,3 +98,7 @@
 | `docs/CRS_PHASE9_TEST_LOG.txt` | 保存完整本地测试运行日志 |
 
 七模块、评分权重、阈值、85%门槛、60/40方法和NQ-Sentinel评分规则均未修改；没有修改main、创建或合并PR，也没有真实交易。
+
+## 第十阶段补充核验
+
+缓存新鲜度分成不同概念：原有的缓存有效性门槛仍按最新观察值年龄计算；第十阶段新增 `cache_retrieval_age_days`，反映检索日期距as-of日期的天数。来源诊断另外提供 `observation_age_days` 和 `publication_lag_days`。如果来源没有真实 `published_at`，发布时间滞后保持 `null`，不以观察日推算。哈希仅用于发现保存后规范化值变化；数据和摘要同处可修改数据库，不构成独立防篡改证据。

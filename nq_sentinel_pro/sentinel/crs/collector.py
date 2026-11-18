@@ -6,6 +6,32 @@ from .fred import SERIES, fetch_series
 from .prices import TICKERS, fetch_prices
 from .metrics import build_features
 
+def _temporal_ages(asof, observation_date=None, retrieved_at=None, published_at=None):
+    """Keep observation freshness, retrieval freshness, and release lag distinct."""
+    asof_day = date.fromisoformat(asof)
+    result = {"observation_age_days": None, "retrieval_age_days": None,
+              "publication_lag_days": None}
+    try:
+        if observation_date:
+            obs_day = date.fromisoformat(str(observation_date)[:10])
+            result["observation_age_days"] = (asof_day - obs_day).days
+    except ValueError:
+        pass
+    try:
+        if retrieved_at:
+            retrieval_day = date.fromisoformat(str(retrieved_at)[:10])
+            result["retrieval_age_days"] = (asof_day - retrieval_day).days
+    except ValueError:
+        pass
+    try:
+        if observation_date and published_at:
+            obs_day = date.fromisoformat(str(observation_date)[:10])
+            published_day = date.fromisoformat(str(published_at)[:10])
+            result["publication_lag_days"] = (published_day - obs_day).days
+    except ValueError:
+        pass
+    return result
+
 MONITORING_GAPS = {
     "breadth": ("MISSING", "No constituent breadth source is connected."),
     "move": ("MISSING", "No MOVE data source is connected."),
@@ -40,6 +66,7 @@ def collect(asof, fred_fetcher=fetch_series, price_fetcher=fetch_prices, fred_ca
                                             "source": item["source"], "source_id": item["series_id"],
                                             "published_at": item.get("published_at"),
                                             "retrieved_at": item.get("retrieved_at"),
+                                            **_temporal_ages(asof, item.get("observation_date"), item.get("retrieved_at"), item.get("published_at")),
                                             "quality": item["quality"],
                                             "license_status": item.get("license_status", "REVIEW_REQUIRED"),
                                             "cache_authorization": item.get("cache_authorization", "NOT_APPROVED"),
@@ -55,11 +82,15 @@ def collect(asof, fred_fetcher=fetch_series, price_fetcher=fetch_prices, fred_ca
                                              "observation_date": cached.get("observation_date"),
                                              "published_at": cached.get("published_at"),
                                              "retrieved_at": cached.get("retrieved_at"),
+                                             **_temporal_ages(asof, cached.get("observation_date"), cached.get("retrieved_at"), cached.get("published_at")),
                                              "quality": cached.get("quality", "UNKNOWN"),
                                              "license_status": cached.get("license_status", "UNKNOWN"),
                                              "cache_authorization": cached.get("cache_authorization", "UNKNOWN"),
                                              "raw_sha256": cached.get("raw_sha256"),
                                              "cache_used": True, "cache_age_days": cached.get("cache_age_days"),
+                                             "observation_age_days": cached.get("observation_age_days"),
+                                             "retrieval_age_days": cached.get("cache_retrieval_age_days"),
+                                             "cache_retrieval_age_days": cached.get("cache_retrieval_age_days"),
                                              "cache_max_age_days": cached.get("cache_max_age_days"),
                                              "reason": str(exc)[:240]}
                 continue
@@ -75,6 +106,7 @@ def collect(asof, fred_fetcher=fetch_series, price_fetcher=fetch_prices, fred_ca
         source_status[f"market:{key}"] = {
             **item, "status": item.get("status", "MISSING"),
             "observation_date": item.get("latest_date"), "published_at": None,
+            **_temporal_ages(asof, item.get("latest_date"), item.get("retrieved_at"), None),
             "license_status": "REVIEW_REQUIRED",
         }
     for key, (status, reason) in MONITORING_GAPS.items():

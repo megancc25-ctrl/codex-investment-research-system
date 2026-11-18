@@ -4,7 +4,7 @@ import json
 import hashlib
 import re
 from pathlib import Path
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 FRED_CACHE_MAX_AGE_DAYS = {
     "reserves": 35, "tga": 35, "case_shiller": 120, "home_sales": 120,
@@ -193,8 +193,10 @@ def load_fred_cache(con, asof):
     grouped = {}
     for row in rows:
         key, day, value, source_id, source_url, source_kind, quality, license_status, cache_auth, published, retrieved, vintage_id, raw_hash, normalized_hash, metadata = row
-        retrieved_text = retrieved.isoformat() if hasattr(retrieved, "isoformat") else str(retrieved)
-        published_text = published.isoformat() if hasattr(published, "isoformat") else published
+        retrieved_value = retrieved.astimezone(timezone.utc) if isinstance(retrieved, datetime) and retrieved.tzinfo else retrieved
+        published_value = published.astimezone(timezone.utc) if isinstance(published, datetime) and published.tzinfo else published
+        retrieved_text = retrieved_value.isoformat() if hasattr(retrieved_value, "isoformat") else str(retrieved_value)
+        published_text = published_value.isoformat() if hasattr(published_value, "isoformat") else published_value
         item = grouped.setdefault(key, {"rows": [], "latest_retrieved_at": retrieved,
             "series_id": source_id, "source": source_url, "source_kind": source_kind,
             "quality": quality, "license_status": license_status,
@@ -245,8 +247,12 @@ def load_fred_cache(con, asof):
         if age > FRED_CACHE_MAX_AGE_DAYS.get(key, 14):
             expired += 1
             continue
+        retrieval_age = (asof_date - retrieved_day).days
         item.update({"series_key": key, "values": values, "observation_date": latest_day, "cached": True,
-                     "cache_age_days": age, "cache_max_age_days": FRED_CACHE_MAX_AGE_DAYS.get(key, 14),
+                     # Keep cache_age_days as a compatibility alias; it means observation age.
+                     "cache_age_days": age, "observation_age_days": age,
+                     "cache_retrieval_age_days": retrieval_age,
+                     "cache_max_age_days": FRED_CACHE_MAX_AGE_DAYS.get(key, 14),
                      "cache_retrieved_at": item.get("retrieved_at")})
         fresh[key] = item
     return fresh, {"stored_series_count": len(grouped), "fresh_series_count": len(fresh),

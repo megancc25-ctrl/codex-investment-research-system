@@ -66,12 +66,14 @@ def render_markdown(report):
     lines.append("- Critical metrics missing: " + (", ".join(score.get("critical_metrics_missing", [])) if score.get("critical_metrics_missing") else "none"))
     lines.append("- Missing metrics: " + (", ".join(score.get("missing_metrics", [])) if score.get("missing_metrics") else "none"))
     lines += ["", "### Source provenance", "",
-              "| Source / indicator | Status | Observation | Published | Retrieved | Quality | License | Reason |",
-              "|---|---|---|---|---|---|---|---|"]
+              "| Source / indicator | Status | Observation | Published | Retrieved | Observation age (days) | Retrieval age (days) | Cache retrieval age (days) | Publication lag (days) | Quality | License | Reason |",
+              "|---|---|---|---|---|---:|---:|---:|---:|---|---|---|"]
     for key, item in report.get("source_status", {}).items():
         lines.append("| " + " | ".join(str(value or "—").replace("|", "\\|").replace("\n", " ") for value in (
             key, item.get("status"), item.get("observation_date"), item.get("published_at"),
-            item.get("retrieved_at"), item.get("quality"), item.get("license_status"),
+            item.get("retrieved_at"), item.get("observation_age_days", item.get("cache_age_days")),
+            item.get("retrieval_age_days"), item.get("cache_retrieval_age_days"), item.get("publication_lag_days"),
+            item.get("quality"), item.get("license_status"),
             item.get("reason"))) + " |")
     lines += ["", "### Rolling source health (up to 30 report dates)", "",
               "| Source | Runs | Live success | Cached | Failures | Timeouts | Consecutive failures | Observation lag days | Missing published time | Quality | License | Latest reason |",

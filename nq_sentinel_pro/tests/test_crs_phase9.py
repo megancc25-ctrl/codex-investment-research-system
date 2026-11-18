@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from sentinel.crs.alerts import evaluate_alerts
+from sentinel.crs.collector import _temporal_ages
 from sentinel.crs.engine import score_snapshot
 from sentinel.crs.feature_status import read_feature
 from sentinel.crs.runner import _evidence
@@ -21,6 +22,12 @@ def source_record(series_id, license_status, digest="a" * 64, source_url=None):
 
 
 class CRSPhase9Tests(unittest.TestCase):
+    def test_temporal_age_dimensions_remain_separate_and_release_lag_unknown(self):
+        ages = _temporal_ages("2026-11-18", "2026-10-29", "2026-11-17T20:00:00+00:00", None)
+        self.assertEqual(ages, {"observation_age_days": 20,
+                                "retrieval_age_days": 1,
+                                "publication_lag_days": None})
+
     def test_shared_feature_status_reader_fails_closed_on_mismatch_and_unknown(self):
         features = {
             "available_false": {"value": False, "status": "AVAILABLE"},
@@ -82,6 +89,8 @@ class CRSPhase9Tests(unittest.TestCase):
                 self.assertEqual(set(loaded), {"ust10y"})
                 self.assertEqual(diagnostics["ineligible_series_count"], 0)
                 self.assertEqual(loaded["ust10y"]["cache_authorization"], "APPROVED_FOR_INTERNAL_CACHE")
+                self.assertEqual(loaded["ust10y"]["observation_age_days"], 1)
+                self.assertEqual(loaded["ust10y"]["cache_retrieval_age_days"], 1)
                 con.execute("UPDATE crs_fred_cache SET value = 9.9 WHERE series_key = 'ust10y'")
                 corrupted, diagnostics = load_fred_cache(con, "2026-11-18")
                 self.assertNotIn("ust10y", corrupted)
@@ -125,6 +134,25 @@ class CRSPhase9Tests(unittest.TestCase):
             markdown = Path(paths["markdown"]).read_text(encoding="utf-8")
             self.assertIn("FRED collection and cache counts", markdown)
             self.assertIn("Ineligible cache series: **1**", markdown)
+            self.assertIn("Observation age (days)", markdown)
+            self.assertIn("Retrieval age (days)", markdown)
+            self.assertIn("Cache retrieval age (days)", markdown)
+            self.assertIn("Publication lag (days)", markdown)
+
+    def test_cache_retrieval_age_is_distinct_from_observation_age(self):
+        record = source_record("WRESBAL", "APPROVED_FOR_INTERNAL_CACHE")
+        record["values"] = {"2026-10-29": 4.1}
+        record["observation_date"] = "2026-10-29"
+        record["retrieved_at"] = "2026-11-17T20:00:00+00:00"
+        with tempfile.TemporaryDirectory() as tmp:
+            con = connect_fred_cache(Path(tmp) / "fred_cache.duckdb")
+            try:
+                save_fred_cache(con, {"asof": "2026-11-17", "fred": {"reserves": record}})
+                loaded, _ = load_fred_cache(con, "2026-11-18")
+                self.assertEqual(loaded["reserves"]["observation_age_days"], 20)
+                self.assertEqual(loaded["reserves"]["cache_retrieval_age_days"], 1)
+            finally:
+                con.close()
 
 
 if __name__ == "__main__":
