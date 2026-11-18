@@ -539,13 +539,17 @@ class CRSEngineTests(unittest.TestCase):
                 self.assertIn("published_at",meta)
                 self.assertIn("retrieved_at",meta)
                 self.assertIn("license_status",meta)
-            observation_ids = dict(con.execute("SELECT DISTINCT metric_id, source_id FROM crs_observations").fetchall())
+            observation_rows = con.execute("SELECT metric_id, source_id, source_url, metadata FROM crs_observations").fetchall()
+            observation_ids = {row[0]:row[1] for row in observation_rows}
+            observation_details = {row[0]:(row[2],json.loads(row[3])) for row in observation_rows}
             for price_key, (source_id, _ticker) in {
                 "price:ndx":expected["ndx_drawdown_63d"], "price:sox":expected["sox_drawdown_63d"],
                 "price:bond_total_return_proxy":expected["bond_return_20d"],
                 "price:gold_proxy":expected["gold_drawdown_20d"],
                 "price:dxy_proxy":expected["usd_20d_change_pct"]}.items():
                 self.assertEqual(observation_ids[price_key],source_id)
+                self.assertIsNone(observation_details[price_key][0])
+                self.assertEqual(observation_details[price_key][1]["source_id"],source_id)
             con.close()
 
     def test_sync_evidence_distinguishes_available_missing_and_insufficient(self):
