@@ -29,55 +29,44 @@ def check_body(body, kind):
         return 'SCHEMA_MISMATCH'
 
 def run_once(authority, preflight_verified=False):
-    if authority!=AUTHORITY or preflight_verified is not True:
-        raise PermissionError('Explicit authority and verified preflight required')
-    plan=load_plan()
-    private=Path('data/crs-g1-private');private.mkdir(parents=True,exist_ok=True)
-    # Atomic reservation before any data request; all outcomes consume authority.
-    marker=private/(AUTHORITY+'.consumed')
-    with marker.open('x',encoding='utf-8') as f:
-        f.write('Single authorized batch reserved; never rerun. Delete diagnostics within 7 days; retain this nonnumerical consumption marker.\n')
-    results=[];start=time.monotonic()
-    for request in plan['requests']:
-        if results:time.sleep(2)
-        if time.monotonic()-start>=45:break
-        kind=request['rate_type'];stamp=datetime.now(timezone.utc).isoformat()
-        diag={'rate_type':kind,'started_at':stamp,'schema_validation':'NOT_RUN','unit_validation':'NOT_RUN','error_code':'NETWORK_FAILURE'}
-        body=None;conn=None
-        try:
-            target=urlsplit(request['url'])
-            conn=http.client.HTTPSConnection(target.hostname,timeout=min(5,45-(time.monotonic()-start)),context=ssl.create_default_context())
-            conn.connect()
-            conn.sock.settimeout(min(10,45-(time.monotonic()-start)))
-            conn.request('GET',target.path+'?'+target.query,headers=plan['headers'])
-            response=conn.getresponse();diag['http_status']=response.status
-            if response.status!=200:
-                diag['error_code']='REDIRECT_BLOCKED' if 300<=response.status<400 else 'HTTP_FAILURE'
-            else:
-                body=bytearray()
-                while len(body)<=262144:
-                    remaining=45-(time.monotonic()-start)
-                    if remaining<=0:raise TimeoutError()
-                    conn.sock.settimeout(min(10,remaining))
-                    chunk=response.read1(min(8192,262145-len(body)))
-                    if not chunk:break
-                    body.extend(chunk)
-                diag['bytes_received']=min(len(body),262144)
-                diag['error_code']='RESPONSE_TOO_LARGE' if len(body)>262144 else check_body(body,kind)
-                diag['schema_validation']='PASS' if diag['error_code']=='NONE' else 'FAIL'
-                if diag['error_code']=='NONE':
-                    diag.update(record_count=1,observation_date='2026-11-19',unit_validation='PASS')
-        except TimeoutError:
-            diag['error_code']='TIMEOUT'
-        except Exception:
-            # Never capture or stringify exception/server content.
-            diag['error_code']='NETWORK_FAILURE'
-        finally:
-            if body is not None:body.clear()
-            if conn:conn.close()
-        diag['completed_at']=datetime.now(timezone.utc).isoformat()
-        diag['elapsed_ms']=min(45000,int((time.monotonic()-start)*1000))
-        results.append(safe_diagnostic(diag))
-        (private/(AUTHORITY+'.diagnostics.json')).write_text(json.dumps(results,indent=2),encoding='utf-8')
-        if diag['error_code']!='NONE':break
-    return results
+    # Authority is irreversibly consumed in the audited repository history.
+    # No cwd, missing local file, clone or caller boolean can revive it.
+    raise PermissionError('AUTHORIZATION_CONSUMED: 7077794290; no live execution path')
+
+
+def assess_body(body, kind):
+    """Offline-only structured assessment; never promote a numeric field to unit proof."""
+    result = {'schema_validation':'FAIL','date_validation':'NOT_RUN',
+              'unit_validation':'UNKNOWN','reason':'JSON_INVALID'}
+    try:
+        payload=json.loads(body)
+    except Exception:
+        return result
+    if not isinstance(payload,dict) or 'refRates' not in payload:
+        result['reason']='CONTAINER_MISSING';return result
+    rows=payload['refRates']
+    if not isinstance(rows,list):
+        result['reason']='CONTAINER_TYPE';return result
+    result['record_count']=len(rows)
+    if len(rows)!=1:
+        result['reason']='ROW_COUNT';return result
+    row=rows[0]
+    if not isinstance(row,dict):
+        result['reason']='ROW_TYPE';return result
+    if row.get('type')!=kind.upper():
+        result['reason']='RATE_TYPE';return result
+    value=row.get('percent')
+    if type(value) not in (int,float) or not math.isfinite(value):
+        result['reason']='RATE_FIELD_TYPE';return result
+    if not isinstance(row.get('effectiveDate'),str):
+        result['reason']='DATE_FIELD_TYPE';return result
+    try:
+        from datetime import date
+        date.fromisoformat(row['effectiveDate'])
+    except ValueError:
+        result['reason']='DATE_FORMAT';return result
+    result['schema_validation']='PASS'
+    result['observation_date']=row['effectiveDate']
+    result['date_validation']='PASS' if row['effectiveDate']=='2026-11-19' else 'FAIL'
+    result['reason']='UNIT_EVIDENCE_MISSING' if result['date_validation']=='PASS' else 'DATE_MISMATCH'
+    return result
