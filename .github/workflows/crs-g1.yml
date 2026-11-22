@@ -1,0 +1,36 @@
+name: CRS 1.2 G1 admission acceptance
+on:
+  push:
+    branches: ['codex/crs-1.2-admission']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: nq_sentinel_pro
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Preserve CRS 1.1 baseline
+        run: |
+          git diff --exit-code 81edbaa279a9315b65b163895bd4406b2f039343 -- sentinel/crs/engine.py sentinel/crs/crs_v1.json sentinel/crs/state.py sentinel/crs/alerts.py
+      - run: python -m compileall -q sentinel tests
+      - name: 132 baseline tests plus G1 offline tests
+        run: python -m unittest discover -s tests -v
+      - name: Export G1 matrix and decision report
+        run: python -m sentinel.crs.admission --output reports/crs-g1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crs-g1-admission-evidence
+          path: nq_sentinel_pro/reports/crs-g1/
+          if-no-files-found: error
+          retention-days: 90

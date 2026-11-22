@@ -1,0 +1,1666 @@
+{
+  "schema_version": "crs-source-admission-1.2-g1",
+  "review_date": "2026-11-22",
+  "baseline": "81edbaa279a9315b65b163895bd4406b2f039343",
+  "policy": "Published-rights findings are conditional evidence assessments, not project terms acceptance, live authorization or investment approval.",
+  "sources": [
+    {
+      "id": "treasury",
+      "rights_holder": "US Treasury Office of Debt Management",
+      "indicators": [
+        "ust10y",
+        "ust30y",
+        "real10y"
+      ],
+      "endpoints": [
+        "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value={year}",
+        "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_real_yield_curve&field_tdr_date_value={year}"
+      ],
+      "documentation_urls": [
+        "https://home.treasury.gov/developer-notice-xml-changes"
+      ],
+      "terms_urls": [
+        "https://catalog.data.gov/dataset/interest-rate-statistics-daily-treasury-yield-curve-rates",
+        "https://catalog.data.gov/dataset/daily-treasury-real-yield-curve-rates"
+      ],
+      "public_access_observation": "DOCUMENTATION_PUBLIC; no market-data endpoint requested",
+      "uses": {
+        "public_access": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "treasury_nominal_catalog",
+            "treasury_real_catalog",
+            "treasury_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "internal_analysis": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "treasury_nominal_catalog",
+            "treasury_real_catalog",
+            "treasury_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "automated_collection": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "treasury_nominal_catalog",
+            "treasury_real_catalog",
+            "treasury_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "memory_processing": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "treasury_nominal_catalog",
+            "treasury_real_catalog",
+            "treasury_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "local_persistence": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "treasury_nominal_catalog",
+            "treasury_real_catalog",
+            "treasury_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "github_cache": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "treasury_nominal_catalog",
+            "treasury_real_catalog",
+            "treasury_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "report_html_json": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "treasury_nominal_catalog",
+            "treasury_real_catalog",
+            "treasury_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "redistribution": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "treasury_nominal_catalog",
+            "treasury_real_catalog",
+            "treasury_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        }
+      },
+      "evidence_ids": [
+        "treasury_nominal_catalog",
+        "treasury_real_catalog",
+        "treasury_docs"
+      ],
+      "summary": "Catalogued nominal and real Treasury curve datasets are marked CC0. This is evidence of existing dataset reuse rights, not a new project license or verification of modern-feed identity.",
+      "gaps": [
+        "Reconcile old catalog resource IDs with current XML feed",
+        "Confirm automated-access service conditions",
+        "Live schema, pagination and source authenticity not tested"
+      ],
+      "conditions": [
+        "Scope only catalog datasets 015-DO-020 and 015-DO-036",
+        "No endorsement; retain source provenance",
+        "Do not generalize CC0 to FRED or third-party rate products"
+      ],
+      "evidence_sufficiency": "PARTIAL; see individual uses and gaps",
+      "license_applicability": {
+        "subject": "CRS personal internal research; public GitHub/HTML/JSON distribution is assessed separately",
+        "territory": "User operates in China; no cross-border legal approval inferred from a US-facing page"
+      },
+      "retention": {
+        "license_duration": "See terms; no invented archival deadline",
+        "project_retention": "No market data stored in G1"
+      },
+      "unit": "percent",
+      "frequency": "business daily",
+      "source_timezone": "America/New_York",
+      "publication_and_revision_evidence": "Documented schedule is separate from first-available evidence; no historical PIT approval",
+      "interface_validation": "OFFLINE_ONLY_NOT_ADMITTED",
+      "project_terms_acceptance": "NOT_GRANTED_BY_THIS_TASK",
+      "live_enabled": false,
+      "next_stage_eligible": false,
+      "endpoint_validation": "DOCUMENTED_ROUTE_NOT_LIVE_TESTED"
+    },
+    {
+      "id": "new_york_fed",
+      "rights_holder": "Federal Reserve Bank of New York; named upstream licensors",
+      "indicators": [
+        "sofr",
+        "tgcr",
+        "bgcr"
+      ],
+      "endpoints": [
+        "https://markets.newyorkfed.org/api/rates/secured/{ratetype}/search.json?startDate={date}&endDate={date}"
+      ],
+      "documentation_urls": [
+        "https://markets.newyorkfed.org/static/docs/markets-api.yml"
+      ],
+      "terms_urls": [
+        "https://www.newyorkfed.org/privacy/termsofuse"
+      ],
+      "public_access_observation": "DOCUMENTATION_PUBLIC; no market-data endpoint requested",
+      "uses": {
+        "public_access": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "ny_terms",
+            "ny_spec",
+            "ny_release"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "internal_analysis": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "ny_terms",
+            "ny_spec",
+            "ny_release"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "automated_collection": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "ny_terms",
+            "ny_spec",
+            "ny_release"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "memory_processing": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "ny_terms",
+            "ny_spec",
+            "ny_release"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "local_persistence": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "ny_terms",
+            "ny_spec",
+            "ny_release"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "github_cache": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "ny_terms",
+            "ny_spec",
+            "ny_release"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "report_html_json": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "ny_terms",
+            "ny_spec",
+            "ny_release"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "redistribution": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "ny_terms",
+            "ny_spec",
+            "ny_release"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        }
+      },
+      "evidence_ids": [
+        "ny_terms",
+        "ny_spec",
+        "ny_release"
+      ],
+      "summary": "Published terms expressly permit personal/business reuse, automated access, storage and distribution subject to general and reference-rate conditions. None has been activated for CRS.",
+      "gaps": [
+        "Project authorization to accept applicable conditions not granted",
+        "Implement exact reference-rate attribution/disclaimers before any presentation",
+        "GitHub hosting/sublicensing treatment unresolved",
+        "No live response or release-vintage validation"
+      ],
+      "conditions": [
+        "Noninterference with service",
+        "Retain copyright, source identifiers and source URL",
+        "Label modifications and do not imply endorsement",
+        "Preserve same permissions and include reference-rate-specific statements"
+      ],
+      "evidence_sufficiency": "PARTIAL; see individual uses and gaps",
+      "license_applicability": {
+        "subject": "CRS personal internal research; public GitHub/HTML/JSON distribution is assessed separately",
+        "territory": "User operates in China; no cross-border legal approval inferred from a US-facing page"
+      },
+      "retention": {
+        "license_duration": "See terms; no invented archival deadline",
+        "project_retention": "No market data stored in G1"
+      },
+      "unit": "percent; volumes billion USD",
+      "frequency": "business daily; possible same-day revisions",
+      "source_timezone": "America/New_York",
+      "publication_and_revision_evidence": "Documented schedule is separate from first-available evidence; no historical PIT approval",
+      "interface_validation": "OFFLINE_ONLY_NOT_ADMITTED",
+      "project_terms_acceptance": "NOT_GRANTED_BY_THIS_TASK",
+      "live_enabled": false,
+      "next_stage_eligible": false,
+      "endpoint_validation": "DOCUMENTED_ROUTE_NOT_LIVE_TESTED"
+    },
+    {
+      "id": "chicago_fed",
+      "rights_holder": "Federal Reserve Bank of Chicago and third-party licensors",
+      "indicators": [
+        "nfci",
+        "anfci"
+      ],
+      "endpoints": [],
+      "documentation_urls": [
+        "https://www.chicagofed.org/research/data/nfci/current-data"
+      ],
+      "terms_urls": [
+        "https://www.chicagofed.org/utilities/legal-notices"
+      ],
+      "public_access_observation": "DOCUMENTATION_PUBLIC; no market-data endpoint requested",
+      "uses": {
+        "public_access": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "chicago_terms",
+            "chicago_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "internal_analysis": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "chicago_terms",
+            "chicago_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "automated_collection": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "chicago_terms",
+            "chicago_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "memory_processing": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "chicago_terms",
+            "chicago_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "local_persistence": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "chicago_terms",
+            "chicago_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "github_cache": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "chicago_terms",
+            "chicago_docs"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "report_html_json": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "chicago_terms",
+            "chicago_docs"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "redistribution": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "chicago_terms",
+            "chicago_docs"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        }
+      },
+      "evidence_ids": [
+        "chicago_terms",
+        "chicago_docs"
+      ],
+      "summary": "Weekly data are publicly documented. The limited written-material exception does not establish permission for automated investment analysis; wider republication/distribution needs permission.",
+      "gaps": [
+        "Clarify NFCI/ANFCI data-file rights for internal investment use and machine processing",
+        "Concrete download route/CSV headers not verified",
+        "Historical revisions need vintages"
+      ],
+      "conditions": [
+        "Do not infer Federal Reserve Bank content is US government public domain",
+        "Written permission where required; third-party content separately assessed"
+      ],
+      "evidence_sufficiency": "PARTIAL; see individual uses and gaps",
+      "license_applicability": {
+        "subject": "CRS personal internal research; public GitHub/HTML/JSON distribution is assessed separately",
+        "territory": "User operates in China; no cross-border legal approval inferred from a US-facing page"
+      },
+      "retention": {
+        "license_duration": "See terms; no invented archival deadline",
+        "project_retention": "No market data stored in G1"
+      },
+      "unit": "standardized index",
+      "frequency": "weekly Wednesday 08:30 ET; holiday rules documented",
+      "source_timezone": "America/New_York",
+      "publication_and_revision_evidence": "Documented schedule is separate from first-available evidence; no historical PIT approval",
+      "interface_validation": "OFFLINE_ONLY_NOT_ADMITTED",
+      "project_terms_acceptance": "NOT_GRANTED_BY_THIS_TASK",
+      "live_enabled": false,
+      "next_stage_eligible": false,
+      "endpoint_validation": "CONCRETE_DOWNLOAD_ENDPOINT_UNRESOLVED"
+    },
+    {
+      "id": "cboe",
+      "rights_holder": "Cboe and data licensors",
+      "indicators": [
+        "vix"
+      ],
+      "endpoints": [
+        "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+      ],
+      "documentation_urls": [
+        "https://www.cboe.com/tradable-products/vix/vix-historical-data"
+      ],
+      "terms_urls": [
+        "https://www.cboe.com/terms/"
+      ],
+      "public_access_observation": "DOCUMENTATION_PUBLIC; no market-data endpoint requested",
+      "uses": {
+        "public_access": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "cboe_terms",
+            "cboe_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "internal_analysis": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "cboe_terms",
+            "cboe_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "automated_collection": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "cboe_terms",
+            "cboe_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "memory_processing": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "cboe_terms",
+            "cboe_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "local_persistence": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "cboe_terms",
+            "cboe_docs"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "github_cache": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "cboe_terms",
+            "cboe_docs"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "report_html_json": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "cboe_terms",
+            "cboe_docs"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "redistribution": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "cboe_terms",
+            "cboe_docs"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        }
+      },
+      "evidence_ids": [
+        "cboe_terms",
+        "cboe_docs"
+      ],
+      "summary": "Daily history has an official public link. A single personal copy exception does not establish recurring analytics/cache/report rights; no fair-use entitlement is presumed.",
+      "gaps": [
+        "Clarify permission for systematic risk analytics and historical persistence",
+        "Resolve data-product-specific terms before any request",
+        "No live CSV validation"
+      ],
+      "conditions": [
+        "Written consent for uses outside limited personal-copy exception",
+        "Retain notices; no inferred right to republish values or derivatives"
+      ],
+      "evidence_sufficiency": "PARTIAL; see individual uses and gaps",
+      "license_applicability": {
+        "subject": "CRS personal internal research; public GitHub/HTML/JSON distribution is assessed separately",
+        "territory": "User operates in China; no cross-border legal approval inferred from a US-facing page"
+      },
+      "retention": {
+        "license_duration": "See terms; no invented archival deadline",
+        "project_retention": "No market data stored in G1"
+      },
+      "unit": "index points",
+      "frequency": "trading daily close",
+      "source_timezone": "America/New_York",
+      "publication_and_revision_evidence": "Documented schedule is separate from first-available evidence; no historical PIT approval",
+      "interface_validation": "OFFLINE_ONLY_NOT_ADMITTED",
+      "project_terms_acceptance": "NOT_GRANTED_BY_THIS_TASK",
+      "live_enabled": false,
+      "next_stage_eligible": false,
+      "endpoint_validation": "DOCUMENTED_ROUTE_NOT_LIVE_TESTED"
+    },
+    {
+      "id": "sec",
+      "rights_holder": "SEC for service; issuers/third parties for filed material",
+      "indicators": [
+        "operating_cash_flow",
+        "capex"
+      ],
+      "endpoints": [
+        "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik10}.json",
+        "https://data.sec.gov/submissions/CIK{cik10}.json"
+      ],
+      "documentation_urls": [
+        "https://www.sec.gov/search-filings/edgar-application-programming-interfaces",
+        "https://www.sec.gov/about/developer-resources"
+      ],
+      "terms_urls": [
+        "https://www.sec.gov/about/privacy-information"
+      ],
+      "public_access_observation": "DOCUMENTATION_PUBLIC; no market-data endpoint requested",
+      "uses": {
+        "public_access": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "sec_docs",
+            "sec_access",
+            "sec_terms"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "internal_analysis": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "sec_docs",
+            "sec_access",
+            "sec_terms"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "automated_collection": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "sec_docs",
+            "sec_access",
+            "sec_terms"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "memory_processing": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "sec_docs",
+            "sec_access",
+            "sec_terms"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "local_persistence": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "sec_docs",
+            "sec_access",
+            "sec_terms"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "github_cache": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "sec_docs",
+            "sec_access",
+            "sec_terms"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "report_html_json": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "sec_docs",
+            "sec_access",
+            "sec_terms"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "redistribution": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "sec_docs",
+            "sec_access",
+            "sec_terms"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        }
+      },
+      "evidence_ids": [
+        "sec_docs",
+        "sec_access",
+        "sec_terms"
+      ],
+      "summary": "SEC documents unauthenticated JSON data APIs and fair-access scripting. This does not make all issuer-authored filing content or copied documents public-domain material.",
+      "gaps": [
+        "Truthful bot contact/identity not configured",
+        "Determine exact extracted-fact storage/report rights separately from full filings",
+        "Filed date is not first-available timestamp; preserve accession and restatements",
+        "Accounting periods/tags require manual mapping before FCF computation"
+      ],
+      "conditions": [
+        "No more than 10 total requests/second and efficient identified access",
+        "No authentication key required for public data APIs",
+        "No GAAP/non-GAAP or YTD/quarter mixing"
+      ],
+      "evidence_sufficiency": "PARTIAL; see individual uses and gaps",
+      "license_applicability": {
+        "subject": "CRS personal internal research; public GitHub/HTML/JSON distribution is assessed separately",
+        "territory": "User operates in China; no cross-border legal approval inferred from a US-facing page"
+      },
+      "retention": {
+        "license_duration": "See terms; no invented archival deadline",
+        "project_retention": "No market data stored in G1"
+      },
+      "unit": "USD; source taxonomy and reported periods retained",
+      "frequency": "quarterly/annual/event driven",
+      "source_timezone": "America/New_York",
+      "publication_and_revision_evidence": "Documented schedule is separate from first-available evidence; no historical PIT approval",
+      "interface_validation": "OFFLINE_ONLY_NOT_ADMITTED",
+      "project_terms_acceptance": "NOT_GRANTED_BY_THIS_TASK",
+      "live_enabled": false,
+      "next_stage_eligible": false,
+      "endpoint_validation": "DOCUMENTED_ROUTE_NOT_LIVE_TESTED"
+    },
+    {
+      "id": "microsoft_ir",
+      "rights_holder": "Microsoft and suppliers",
+      "indicators": [
+        "microsoft_capex",
+        "microsoft_cash_flow"
+      ],
+      "endpoints": [],
+      "documentation_urls": [
+        "https://www.microsoft.com/en-us/Investor/"
+      ],
+      "terms_urls": [
+        "https://www.microsoft.com/en-us/legal/terms-of-use"
+      ],
+      "public_access_observation": "DOCUMENTATION_PUBLIC; no market-data endpoint requested",
+      "uses": {
+        "public_access": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "ir_terms"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "internal_analysis": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "ir_terms"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "automated_collection": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "ir_terms"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "memory_processing": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "ir_terms"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "local_persistence": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "ir_terms"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "github_cache": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "ir_terms"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "report_html_json": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "ir_terms"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "redistribution": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "ir_terms"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        }
+      },
+      "evidence_ids": [
+        "ir_terms"
+      ],
+      "summary": "Microsoft is the bounded issuer-IR pilot. General document permissions are conditional and do not establish automated redistribution or permission for all AI-company IR sites.",
+      "gaps": [
+        "Verify applicable IR-specific terms and exact document scope",
+        "No financial-report endpoint/schema verified",
+        "Other companies are not covered by this review"
+      ],
+      "conditions": [
+        "Personal/noncommercial and document-notice limitations",
+        "No automated copy/republication assumed"
+      ],
+      "evidence_sufficiency": "PARTIAL; see individual uses and gaps",
+      "license_applicability": {
+        "subject": "CRS personal internal research; public GitHub/HTML/JSON distribution is assessed separately",
+        "territory": "User operates in China; no cross-border legal approval inferred from a US-facing page"
+      },
+      "retention": {
+        "license_duration": "See terms; no invented archival deadline",
+        "project_retention": "No market data stored in G1"
+      },
+      "unit": "USD; not mapped",
+      "frequency": "quarterly/annual/event driven",
+      "source_timezone": "Issuer release timezone not verified",
+      "publication_and_revision_evidence": "Documented schedule is separate from first-available evidence; no historical PIT approval",
+      "interface_validation": "OFFLINE_ONLY_NOT_ADMITTED",
+      "project_terms_acceptance": "NOT_GRANTED_BY_THIS_TASK",
+      "live_enabled": false,
+      "next_stage_eligible": false,
+      "endpoint_validation": "CONCRETE_DOWNLOAD_ENDPOINT_UNRESOLVED"
+    },
+    {
+      "id": "census",
+      "rights_holder": "US Census Bureau; possible identified third parties",
+      "indicators": [
+        "new_residential_construction"
+      ],
+      "endpoints": [
+        "https://api.census.gov/data/timeseries/eits/resconst"
+      ],
+      "documentation_urls": [
+        "https://api.census.gov/data/timeseries/eits/resconst.html"
+      ],
+      "terms_urls": [
+        "https://www.census.gov/about/policies/citation.html"
+      ],
+      "public_access_observation": "DOCUMENTATION_PUBLIC; no market-data endpoint requested",
+      "uses": {
+        "public_access": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "census_citation",
+            "census_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "internal_analysis": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "census_citation",
+            "census_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "automated_collection": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "census_citation",
+            "census_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "memory_processing": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "census_citation",
+            "census_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "local_persistence": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "census_citation",
+            "census_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "github_cache": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "census_citation",
+            "census_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "report_html_json": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "census_citation",
+            "census_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "redistribution": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "census_citation",
+            "census_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        }
+      },
+      "evidence_ids": [
+        "census_citation",
+        "census_docs"
+      ],
+      "summary": "Official API directory and public-use citation guidance found. Residential construction is not existing-home sales, rent or global property prices; it cannot silently replace those CRS inputs.",
+      "gaps": [
+        "Complete dataset-specific use, automation, international scope and hosting review",
+        "Validate query variables, units and release calendar",
+        "No live API response verified"
+      ],
+      "conditions": [
+        "Attribute original Census data and own analytical responsibility",
+        "Respect statistical uncertainty and revisions"
+      ],
+      "evidence_sufficiency": "PARTIAL; see individual uses and gaps",
+      "license_applicability": {
+        "subject": "CRS personal internal research; public GitHub/HTML/JSON distribution is assessed separately",
+        "territory": "User operates in China; no cross-border legal approval inferred from a US-facing page"
+      },
+      "retention": {
+        "license_duration": "See terms; no invented archival deadline",
+        "project_retention": "No market data stored in G1"
+      },
+      "unit": "query dependent; not mapped",
+      "frequency": "monthly",
+      "source_timezone": "America/New_York",
+      "publication_and_revision_evidence": "Documented schedule is separate from first-available evidence; no historical PIT approval",
+      "interface_validation": "OFFLINE_ONLY_NOT_ADMITTED",
+      "project_terms_acceptance": "NOT_GRANTED_BY_THIS_TASK",
+      "live_enabled": false,
+      "next_stage_eligible": false,
+      "endpoint_validation": "DOCUMENTED_ROUTE_NOT_LIVE_TESTED"
+    },
+    {
+      "id": "bis",
+      "rights_holder": "Bank for International Settlements with contributing national authorities",
+      "indicators": [
+        "global_residential_property_prices"
+      ],
+      "endpoints": [],
+      "documentation_urls": [
+        "https://stats.bis.org/api-doc/v2/"
+      ],
+      "terms_urls": [
+        "https://data.bis.org/help/legal"
+      ],
+      "public_access_observation": "DOCUMENTATION_PUBLIC; no market-data endpoint requested",
+      "uses": {
+        "public_access": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "bis_stats_portal_terms",
+            "bis_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "internal_analysis": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "bis_stats_portal_terms",
+            "bis_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "automated_collection": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "bis_stats_portal_terms",
+            "bis_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "memory_processing": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "bis_stats_portal_terms",
+            "bis_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "local_persistence": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "bis_stats_portal_terms",
+            "bis_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "github_cache": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "bis_stats_portal_terms",
+            "bis_docs"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "report_html_json": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "bis_stats_portal_terms",
+            "bis_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "redistribution": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "bis_stats_portal_terms",
+            "bis_docs"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        }
+      },
+      "evidence_ids": [
+        "bis_stats_portal_terms",
+        "bis_docs"
+      ],
+      "summary": "Statistics-specific terms permit conditional reuse and API access. The exact property-price SDMX flow/key and national-series limitations remain to be verified; general publication terms are not substituted for statistics terms.",
+      "gaps": [
+        "Project authority to accept API conditions absent",
+        "Validate current SDMX endpoint/version, flow key, country units and vintages",
+        "GitHub hosting terms and any series-specific limitation unresolved"
+      ],
+      "conditions": [
+        "Cite BIS",
+        "Label unofficial translations",
+        "No misleading endorsement",
+        "No additional charge attributable to the statistics in commercial products",
+        "Use current supported API"
+      ],
+      "evidence_sufficiency": "PARTIAL; see individual uses and gaps",
+      "license_applicability": {
+        "subject": "CRS personal internal research; public GitHub/HTML/JSON distribution is assessed separately",
+        "territory": "User operates in China; no cross-border legal approval inferred from a US-facing page"
+      },
+      "retention": {
+        "license_duration": "See terms; no invented archival deadline",
+        "project_retention": "No market data stored in G1"
+      },
+      "unit": "country/series dependent; not mapped",
+      "frequency": "typically quarterly; verify per series",
+      "source_timezone": "Release timezone not verified",
+      "publication_and_revision_evidence": "Documented schedule is separate from first-available evidence; no historical PIT approval",
+      "interface_validation": "OFFLINE_ONLY_NOT_ADMITTED",
+      "project_terms_acceptance": "NOT_GRANTED_BY_THIS_TASK",
+      "live_enabled": false,
+      "next_stage_eligible": false,
+      "endpoint_validation": "CONCRETE_DOWNLOAD_ENDPOINT_UNRESOLVED"
+    },
+    {
+      "id": "nasdaq",
+      "rights_holder": "Nasdaq and licensors",
+      "indicators": [
+        "ndx",
+        "sox"
+      ],
+      "endpoints": [],
+      "documentation_urls": [
+        "https://www.nasdaq.com/"
+      ],
+      "terms_urls": [
+        "https://www.nasdaq.com/legal"
+      ],
+      "public_access_observation": "DOCUMENTATION_PUBLIC; no market-data endpoint requested",
+      "uses": {
+        "public_access": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "nasdaq_legal"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "internal_analysis": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "nasdaq_legal"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "automated_collection": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "nasdaq_legal"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "memory_processing": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "nasdaq_legal"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "local_persistence": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "nasdaq_legal"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "github_cache": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "nasdaq_legal"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "report_html_json": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "nasdaq_legal"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "redistribution": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "nasdaq_legal"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        }
+      },
+      "evidence_ids": [
+        "nasdaq_legal"
+      ],
+      "summary": "Nasdaq general website terms restrict extraction and data-analysis software use absent permission. A public historical page is not an index-data license.",
+      "gaps": [
+        "Identify a separately licensed index feed or approved broker/provider entitlement",
+        "No index endpoint admitted or probed"
+      ],
+      "conditions": [
+        "Obtain source-specific written permission/contract if proceeding",
+        "Do not evade access controls"
+      ],
+      "evidence_sufficiency": "PARTIAL; see individual uses and gaps",
+      "license_applicability": {
+        "subject": "CRS personal internal research; public GitHub/HTML/JSON distribution is assessed separately",
+        "territory": "User operates in China; no cross-border legal approval inferred from a US-facing page"
+      },
+      "retention": {
+        "license_duration": "See terms; no invented archival deadline",
+        "project_retention": "No market data stored in G1"
+      },
+      "unit": "index points",
+      "frequency": "trading daily",
+      "source_timezone": "America/New_York",
+      "publication_and_revision_evidence": "Documented schedule is separate from first-available evidence; no historical PIT approval",
+      "interface_validation": "OFFLINE_ONLY_NOT_ADMITTED",
+      "project_terms_acceptance": "NOT_GRANTED_BY_THIS_TASK",
+      "live_enabled": false,
+      "next_stage_eligible": false,
+      "endpoint_validation": "CONCRETE_DOWNLOAD_ENDPOINT_UNRESOLVED"
+    },
+    {
+      "id": "blackrock_etf",
+      "rights_holder": "BlackRock and third-party providers",
+      "indicators": [
+        "ief_proxy_candidate"
+      ],
+      "endpoints": [],
+      "documentation_urls": [
+        "https://www.ishares.com/us"
+      ],
+      "terms_urls": [
+        "https://www.blackrock.com/corporate/compliance/terms-and-conditions"
+      ],
+      "public_access_observation": "DOCUMENTATION_PUBLIC; no market-data endpoint requested",
+      "uses": {
+        "public_access": {
+          "status": "ALLOWED",
+          "evidence_ids": [
+            "blackrock_terms"
+          ],
+          "rationale": "Conditional published permission in this exact dataset scope; not project activation."
+        },
+        "internal_analysis": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "blackrock_terms"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "automated_collection": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "blackrock_terms"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "memory_processing": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "blackrock_terms"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "local_persistence": {
+          "status": "UNKNOWN",
+          "evidence_ids": [
+            "blackrock_terms"
+          ],
+          "rationale": "Insufficient evidence for this exact use; disabled, not a finding that permission is impossible."
+        },
+        "github_cache": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "blackrock_terms"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "report_html_json": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "blackrock_terms"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        },
+        "redistribution": {
+          "status": "RESTRICTED",
+          "evidence_ids": [
+            "blackrock_terms"
+          ],
+          "rationale": "Restricted for the requested systematic CRS use absent separate permission."
+        }
+      },
+      "evidence_ids": [
+        "blackrock_terms"
+      ],
+      "summary": "BlackRock corporate terms include automatic-device copying restrictions; web-rendered and direct-origin text differed. These corporate terms are not silently applied as an iShares data license.",
+      "gaps": [
+        "Verify regional iShares-specific terms and ownership",
+        "Find approved price/total-return endpoint, corporate actions and adjustment method",
+        "Resolve origin/rendered terms discrepancy before permission decisions"
+      ],
+      "conditions": [
+        "Only a candidate ETF proxy, not a Treasury total-return index",
+        "No region change, login, credential or consent action undertaken"
+      ],
+      "evidence_sufficiency": "PARTIAL; see individual uses and gaps",
+      "license_applicability": {
+        "subject": "CRS personal internal research; public GitHub/HTML/JSON distribution is assessed separately",
+        "territory": "User operates in China; no cross-border legal approval inferred from a US-facing page"
+      },
+      "retention": {
+        "license_duration": "See terms; no invented archival deadline",
+        "project_retention": "No market data stored in G1"
+      },
+      "unit": "NAV/price units and adjustment not verified",
+      "frequency": "not verified",
+      "source_timezone": "not verified",
+      "publication_and_revision_evidence": "Documented schedule is separate from first-available evidence; no historical PIT approval",
+      "interface_validation": "OFFLINE_ONLY_NOT_ADMITTED",
+      "project_terms_acceptance": "NOT_GRANTED_BY_THIS_TASK",
+      "live_enabled": false,
+      "next_stage_eligible": false,
+      "endpoint_validation": "CONCRETE_DOWNLOAD_ENDPOINT_UNRESOLVED"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "treasury_nominal_catalog",
+      "url": "https://catalog.data.gov/dataset/interest-rate-statistics-daily-treasury-yield-curve-rates",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "4e217a8e0b412f3c33b88aecea226137bd96028be9e5781e674357da8d302d31",
+      "excerpt": "license http://creativecommons.org/publicdomain/zero/1.0/",
+      "excerpt_sha256": "18098dbd8c98a15c1d801a2c2f2fd05b2c4efb26c173a7a518243851c9d9b610",
+      "summary": "Treasury Office of Debt Management catalog record 015-DO-020 labels the nominal curve dataset CC0; legacy resource mapping must be reconciled with current XML.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110634+00:00",
+      "request_started_at": "2026-11-22T05:35:32.610666+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    },
+    {
+      "id": "treasury_real_catalog",
+      "url": "https://catalog.data.gov/dataset/daily-treasury-real-yield-curve-rates",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "216ed3a3d796228ce04aa9e6942d7b4e5830c5aee0a9845723b401417bc8ab87",
+      "excerpt": "license http://creativecommons.org/publicdomain/zero/1.0/",
+      "excerpt_sha256": "18098dbd8c98a15c1d801a2c2f2fd05b2c4efb26c173a7a518243851c9d9b610",
+      "summary": "Treasury catalog 015-DO-036 labels real curve data CC0; dataset metadata is old and does not independently verify the modern endpoint.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110648+00:00",
+      "request_started_at": "2026-11-22T05:35:32.611091+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    },
+    {
+      "id": "treasury_docs",
+      "url": "https://home.treasury.gov/developer-notice-xml-changes",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "cc48a574dbc1db4f18d5fb9218b348434857d5ebdd5cd38dbf49de39ad09c84b",
+      "excerpt": "Developer Notice - XML changes",
+      "excerpt_sha256": "c9afb8a113a6e1e5ba01f158f6204d3380d784e3682b01b84a74e9afc6915e76",
+      "summary": "Official developer notice identifies nominal/real XML feed routes, parameters and pagination. No feed was requested.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110651+00:00",
+      "request_started_at": "2026-11-22T05:34:54.936381+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    },
+    {
+      "id": "ny_terms",
+      "url": "https://www.newyorkfed.org/privacy/termsofuse",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "5fb0305e59fa0121d071ec5b514e08c73cc6d78999d984a7d8bd8454a9254811",
+      "excerpt": "Download, store, and use Content in any format or media",
+      "excerpt_sha256": "5d86eb7058716b15ff38612768ed2ce4c8f4640e1696e6eb0a73a603e10c5fd6",
+      "summary": "Permissible Use grants automated access, personal/business use, storage and distribution subject to conditions; reference-rate notices and non-endorsement statements are mandatory.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110653+00:00",
+      "request_started_at": "2026-11-22T05:32:14.392070+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    },
+    {
+      "id": "ny_spec",
+      "url": "https://markets.newyorkfed.org/static/docs/markets-api.yml",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "5dbb331d86b91bfc115be9b5fe9c46735833a4f7280d33e4327e8acf7ad30d2b",
+      "excerpt": "/api/rates/secured/{ratetype}/search.{format}:",
+      "excerpt_sha256": "8f2d5f1762e7c28bdfd0ba374445c46ec167e84ece7d4e9dd0539c132a1e604c",
+      "summary": "Official Swagger specification documents secured-rate endpoints and effectiveDate, percentRate, revisionIndicator and volumeInBillions fields.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110654+00:00",
+      "request_started_at": "2026-11-22T05:34:54.937603+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    },
+    {
+      "id": "ny_release",
+      "url": "https://www.newyorkfed.org/markets/reference-rates/additional-information-about-reference-rates",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "312e332f5f4af61b31183e6109ed9f4344094b422c54fe7bc090cd4be7e1a973",
+      "excerpt": "approximately 2:30 p.m. ET",
+      "excerpt_sha256": "40707b68a722cf2c7edd7fddaadc69ee790231d504b227e8591da9d870a64b54",
+      "summary": "Reference-rate methodology describes same-day revisions; scheduled release/revision times are not proof of when a historical value first became available.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110655+00:00",
+      "request_started_at": "2026-11-22T05:32:14.394867+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    },
+    {
+      "id": "chicago_terms",
+      "url": "https://www.chicagofed.org/utilities/legal-notices",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "53dd0fae19e218dceb4353504f8859a8fea8c7d188aa9e6892761ecbe9ec54f6",
+      "excerpt": "not for the purpose of private and/or commercial gain",
+      "excerpt_sha256": "772b699c33c4168e5fe83ed18d77f71ca990b12a7b3d207d5f12bd2aabb67804",
+      "summary": "Written-material reproduction exception is limited; further republication/distribution requires written permission. Applicability of the exception to automated investment analytics and data files is unresolved.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110656+00:00",
+      "request_started_at": "2026-11-22T05:32:14.395706+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    },
+    {
+      "id": "chicago_docs",
+      "url": "https://www.chicagofed.org/research/data/nfci/current-data",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "eb89064d314e524c089556a8edddbd7aed5ed7d813b9f5a72eb1de5c98f356a7",
+      "excerpt": "updated on a weekly basis at 8:30 a.m. ET on Wednesday",
+      "excerpt_sha256": "e8b18be808ebcda3eccf0cd9035d88a95dddc094ffd89b23fd10abfbd1af9434",
+      "summary": "Documents weekly NFCI/ANFCI updates, holiday deferral and history revisions. Download transport/schema requires separate verification.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110658+00:00",
+      "request_started_at": "2026-11-22T05:32:14.396774+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    },
+    {
+      "id": "cboe_terms",
+      "url": "https://www.cboe.com/terms/",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "f1115e1de1efa134521f8934a2b8a3423f8efd36132dab1b6ec448f1860a4fa5",
+      "excerpt": "You may view, print and download one copy of the Materials for your personal non-commercial use",
+      "excerpt_sha256": "d895b905dc6e188635b3ce83974be3bc2a4a61160b72132738a3a34f8e206d79",
+      "summary": "Section 2 allows a limited personal copy; systematic storage, modification and redistribution are otherwise restricted absent consent. No fair-use exception is presumed.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110659+00:00",
+      "request_started_at": "2026-11-22T05:34:54.937978+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    },
+    {
+      "id": "cboe_docs",
+      "url": "https://www.cboe.com/tradable-products/vix/vix-historical-data",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "2780bb08de972c99a35ac68f639486c0657cee5857cda543ed08b0752cb5e536",
+      "excerpt": "VIX Index data for 1990 to present (Updated Daily)",
+      "excerpt_sha256": "7e8d93fc102614eaaffb5365c871fec113b3a8e0459a54ec42cda9fc0d9076ff",
+      "summary": "Official historical page links VIX_History.csv on cdn-api.cboe.com. A public link does not grant CRS processing/publication rights.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110660+00:00",
+      "request_started_at": "2026-11-22T05:32:15.582874+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    },
+    {
+      "id": "sec_docs",
+      "url": "https://www.sec.gov/search-filings/edgar-application-programming-interfaces",
+      "capture_mode": "WEB_TOOL_RENDERED_EXCERPT",
+      "origin_response_sha256": null,
+      "excerpt": "These APIs do not require any authentication or API keys to access.",
+      "excerpt_sha256": "2f5d7116af13cbc82daca7e3b3d2ad9619cf64b682b0a278580d5382d9c2e1d5",
+      "summary": "Documents public submissions/companyfacts APIs; extracted facts are distinct from full company-owned filing documents and filed dates are not intraday availability evidence.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Origin fetch unavailable; excerpt verified in web tool. Hash covers only this excerpt, not the full origin response.",
+      "reviewed_at": "2026-11-22T05:42:29.110662+00:00",
+      "captured_on": "2026-11-22",
+      "timestamp_precision": "WEB_TOOL_CAPTURE_DATE_ONLY; exact response time not exposed"
+    },
+    {
+      "id": "sec_access",
+      "url": "https://www.sec.gov/about/developer-resources",
+      "capture_mode": "WEB_TOOL_RENDERED_EXCERPT",
+      "origin_response_sha256": null,
+      "excerpt": "no more than 10 requests per second",
+      "excerpt_sha256": "ef818b66c29a839c6096fa1eafcafb4d52b355d321b8a36dbbbad924d6791627",
+      "summary": "Efficient identified access is required. Access rules do not settle all rights in filer-provided content; bot identity must be configured truthfully before any live request.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Origin fetch unavailable; excerpt verified in web tool. Hash covers only this excerpt, not the full origin response.",
+      "reviewed_at": "2026-11-22T05:42:29.110664+00:00",
+      "captured_on": "2026-11-22",
+      "timestamp_precision": "WEB_TOOL_CAPTURE_DATE_ONLY; exact response time not exposed"
+    },
+    {
+      "id": "sec_terms",
+      "url": "https://www.sec.gov/about/privacy-information",
+      "capture_mode": "WEB_TOOL_RENDERED_EXCERPT",
+      "origin_response_sha256": null,
+      "excerpt": "SEC Web Site Privacy and Security Policy",
+      "excerpt_sha256": "c4c51c69c0730265710532956209dae1cb77802695f17ebf2badf4a83708d4d4",
+      "summary": "Privacy/security policy was reviewed; it does not itself provide sufficient blanket storage/republication permission for every filer-owned document.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Origin fetch unavailable; excerpt verified in web tool. Hash covers only this excerpt, not the full origin response.",
+      "reviewed_at": "2026-11-22T05:42:29.110665+00:00",
+      "captured_on": "2026-11-22",
+      "timestamp_precision": "WEB_TOOL_CAPTURE_DATE_ONLY; exact response time not exposed"
+    },
+    {
+      "id": "ir_terms",
+      "url": "https://www.microsoft.com/en-us/legal/terms-of-use",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "d22e22e3a5e6be5d23d3e062dadd75777b094aaead11c0d2b63545b487021e16",
+      "excerpt": "Distribution outside the classroom requires express written permission.",
+      "excerpt_sha256": "21b2cbc03251a7e99ef9190d7fae6cf366cc7113934d34b0294c3db171eaf3fd",
+      "summary": "Microsoft documents have personal/noncommercial and copying/distribution restrictions; this review covers Microsoft only, not all issuer IR sites.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110666+00:00",
+      "request_started_at": "2026-11-22T05:32:16.909133+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    },
+    {
+      "id": "census_citation",
+      "url": "https://www.census.gov/about/policies/citation.html",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "6c96d34c8759b32d3bef910a9c9dd136249d7c6f36d117a856f2f40b08dc2f95",
+      "excerpt": "Conclusions drawn from any analysis of these data are the sole responsibility of the performing party.",
+      "excerpt_sha256": "ad3029a913d044e2ce36bf2341c5a35c2d321004ef4f67b7e6bfde851c3e166d",
+      "summary": "Official citation/public-use guidance supports sourced analysis but is not a complete source-specific automation, hosting and territorial-rights review.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110667+00:00",
+      "request_started_at": "2026-11-22T05:34:55.879290+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    },
+    {
+      "id": "census_docs",
+      "url": "https://api.census.gov/data/timeseries/eits/resconst.html",
+      "capture_mode": "WEB_TOOL_RENDERED_EXCERPT",
+      "origin_response_sha256": null,
+      "excerpt": "New Residential Construction",
+      "excerpt_sha256": "7fc8ac90a90d0b6bab0bfe78fb074ebc5d5c8384eeb0026f849d855b3b3c327b",
+      "summary": "Official API directory identifies the residential-construction endpoint. It is not existing-home sales or a global house-price index.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Origin fetch unavailable; excerpt verified in web tool. Hash covers only this excerpt, not the full origin response.",
+      "reviewed_at": "2026-11-22T05:42:29.110669+00:00",
+      "captured_on": "2026-11-22",
+      "timestamp_precision": "WEB_TOOL_CAPTURE_DATE_ONLY; exact response time not exposed"
+    },
+    {
+      "id": "bis_stats_portal_terms",
+      "url": "https://data.bis.org/help/legal",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "a7c09b1c978bee3e147644e6a69de9e3193ce4820df1e97c266a9b8faf1520f5",
+      "excerpt": "The use of the statistics is unrestricted, provided that:",
+      "excerpt_sha256": "3b7f06f7b56d678904ffdb9ca8c6335725f6fcabdbf7c4f827939ae700e55bc8",
+      "summary": "BIS statistics have explicit conditional reuse and API terms: citation, translation disclaimer, no misleading endorsement and no incremental commercial charge. Portal/API terms must be accepted separately before use.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110670+00:00",
+      "request_started_at": "2026-11-22T05:35:32.611528+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    },
+    {
+      "id": "bis_docs",
+      "url": "https://stats.bis.org/api-doc/v2/",
+      "capture_mode": "WEB_TOOL_RENDERED_EXCERPT",
+      "origin_response_sha256": null,
+      "excerpt": "BIS API documentation",
+      "excerpt_sha256": "e6cb7f1ceca3f359b4192806ff72098a4e4abad8f2380e99436011694da2606f",
+      "summary": "Official API documentation entry found. Dataset-specific SDMX flow/key, units and live response have not been verified.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Origin fetch unavailable; excerpt verified in web tool. Hash covers only this excerpt, not the full origin response.",
+      "reviewed_at": "2026-11-22T05:42:29.110671+00:00",
+      "captured_on": "2026-11-22",
+      "timestamp_precision": "WEB_TOOL_CAPTURE_DATE_ONLY; exact response time not exposed"
+    },
+    {
+      "id": "nasdaq_legal",
+      "url": "https://www.nasdaq.com/legal",
+      "capture_mode": "WEB_TOOL_RENDERED_EXCERPT",
+      "origin_response_sha256": null,
+      "excerpt": "You shall not share, transfer, disclose, copy, publish or create derivative works",
+      "excerpt_sha256": "b3d0208240238c808f4d90510f8ae7298805561aa7b6c5597739f338dd38207d",
+      "summary": "Current legal page restricts automated/manual extraction and use in data-analysis software absent permission. General website terms are not a paid index-data license.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Origin fetch unavailable; excerpt verified in web tool. Hash covers only this excerpt, not the full origin response.",
+      "reviewed_at": "2026-11-22T05:42:29.110672+00:00",
+      "captured_on": "2026-11-22",
+      "timestamp_precision": "WEB_TOOL_CAPTURE_DATE_ONLY; exact response time not exposed"
+    },
+    {
+      "id": "blackrock_terms",
+      "url": "https://www.blackrock.com/corporate/compliance/terms-and-conditions",
+      "capture_mode": "ORIGIN_BODY_HASH_AND_SHORT_EXCERPT",
+      "origin_response_sha256": "d2ee43e950d770f2b123a6035bdf09bcec5bf0a3f8c5abc93a1dc156af7fdb53",
+      "excerpt": "Use any robot, spider, intelligent agent, other automatic device, or manual process",
+      "excerpt_sha256": "dc53f1a77999b0cb669a6a1f99cd745fb427da56e3b85700e1f38f18aa920a45",
+      "summary": "Origin response includes automated search/copy restrictions. Rendered web version differs; applicability to an iShares region/product endpoint remains unresolved and is not broadened.",
+      "evidence_kind": "DOCUMENTATION_OR_TERMS",
+      "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
+      "reviewed_at": "2026-11-22T05:42:29.110673+00:00",
+      "request_started_at": "2026-11-22T05:34:56.508983+00:00",
+      "response_completed_at": null,
+      "timestamp_precision": "ORIGIN_REQUEST_START_ONLY"
+    }
+  ],
+  "fred_series": [
+    {
+      "key": "hy_oas",
+      "series_id": "BAMLH0A0HYM2",
+      "license_status": "RESTRICTED",
+      "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "ig_oas",
+      "series_id": "BAMLC0A0CM",
+      "license_status": "RESTRICTED",
+      "source_url": "https://fred.stlouisfed.org/series/BAMLC0A0CM",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "ccc_oas",
+      "series_id": "BAMLH0A3HYC",
+      "license_status": "RESTRICTED",
+      "source_url": "https://fred.stlouisfed.org/series/BAMLH0A3HYC",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "ust10y",
+      "series_id": "DGS10",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/DGS10",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "ust30y",
+      "series_id": "DGS30",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/DGS30",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "real10y",
+      "series_id": "DFII10",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/DFII10",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "vix",
+      "series_id": "VIXCLS",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/VIXCLS",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "sofr",
+      "series_id": "SOFR",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/SOFR",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "iorb",
+      "series_id": "IORB",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/IORB",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "nfci",
+      "series_id": "NFCI",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/NFCI",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "reserves",
+      "series_id": "WRESBAL",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/WRESBAL",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "rrp",
+      "series_id": "RRPONTSYD",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/RRPONTSYD",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "tga",
+      "series_id": "WTREGEN",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/WTREGEN",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "broad_usd",
+      "series_id": "DTWEXBGS",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/DTWEXBGS",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "case_shiller",
+      "series_id": "CSUSHPISA",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/CSUSHPISA",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "home_sales",
+      "series_id": "EXHOSLUSM495S",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/EXHOSLUSM495S",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "mortgage30y",
+      "series_id": "MORTGAGE30US",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/MORTGAGE30US",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "cpi",
+      "series_id": "CPIAUCSL",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/CPIAUCSL",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    },
+    {
+      "key": "stlfsi",
+      "series_id": "STLFSI4",
+      "license_status": "REVIEW_REQUIRED",
+      "source_url": "https://fred.stlouisfed.org/series/STLFSI4",
+      "live_enabled": false,
+      "reason": "Unchanged CRS 1.1 restriction; original-institution rights do not grant FRED-service rights."
+    }
+  ],
+  "research_access_failures": [
+    {
+      "id": "chicago_docs",
+      "url": "https://www.chicagofed.org/research/data/nfci/current-data",
+      "error": "'gbk' codec can't encode character '\\xa9' in position 782: illegal multibyte sequence"
+    },
+    {
+      "id": "cboe_terms",
+      "url": "https://www.cboe.com/terms/",
+      "error": "IncompleteRead(188319 bytes read)"
+    },
+    {
+      "id": "census_terms",
+      "url": "https://www.census.gov/about/policies/copyright.html",
+      "error": "The read operation timed out"
+    },
+    {
+      "id": "sec_docs",
+      "url": "https://www.sec.gov/search-filings/edgar-application-programming-interfaces",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "id": "sec_terms",
+      "url": "https://www.sec.gov/about/privacy-information",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "id": "bis_terms",
+      "url": "https://www.bis.org/about/terms-conditions",
+      "error": "IncompleteRead(102707 bytes read, 25033 more expected)"
+    },
+    {
+      "id": "nasdaq_terms",
+      "url": "https://www.nasdaq.com/terms-of-use",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "id": "bis_stats_terms",
+      "url": "https://www.bis.org/about/legal/permitted-use-statistics",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "id": "nasdaq_legal",
+      "url": "https://www.nasdaq.com/legal",
+      "error": "HTTP Error 403: Forbidden"
+    }
+  ],
+  "research_scope": "Documentation/terms/catalog metadata only; no numerical market-data feed fetched; ten bounded source candidates, not an exhaustive global-source inventory."
+}
