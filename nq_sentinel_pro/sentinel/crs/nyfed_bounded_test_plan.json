@@ -1,0 +1,55 @@
+{
+  "schema_version": "nyfed-g1-proposed-test-1",
+  "approved": false,
+  "reviewed_on": "2026-11-22",
+  "authority": "Issue #4 comment 7074985967 permits documentation/offline work only",
+  "maximum_market_data_requests": 3,
+  "data_date": "2026-11-19",
+  "execution_date": "NOT_SCHEDULED; only after explicit approval; once only",
+  "requests": [
+    {"rate_type": "sofr", "method": "GET", "data_date": "2026-11-19", "url": "https://markets.newyorkfed.org/api/rates/secured/sofr/search.json?startDate=2026-11-19&endDate=2026-11-19&type=rate"},
+    {"rate_type": "tgcr", "method": "GET", "data_date": "2026-11-19", "url": "https://markets.newyorkfed.org/api/rates/secured/tgcr/search.json?startDate=2026-11-19&endDate=2026-11-19&type=rate"},
+    {"rate_type": "bgcr", "method": "GET", "data_date": "2026-11-19", "url": "https://markets.newyorkfed.org/api/rates/secured/bgcr/search.json?startDate=2026-11-19&endDate=2026-11-19&type=rate"}
+  ],
+  "headers": {"Accept": "application/json", "User-Agent": "CRS-G1-ReadOnly-Validation/1.2"},
+  "official_user_agent_requirement": "NOT_SPECIFIED_IN_REVIEWED_DOCS; chosen truthful project identifier is a project control, not an asserted NY Fed rule",
+  "controls": {
+    "retries": 0, "redirects": false, "credentials": false, "scheduled_runs": false,
+    "raw_response_persistence": false, "github_cache": false, "public_numerical_artifacts": false,
+    "maximum_concurrency": 1, "minimum_seconds_between_requests": 2,
+    "connect_timeout_seconds": 5, "read_timeout_seconds": 10, "batch_wall_clock_limit_seconds": 45,
+    "maximum_body_bytes_per_request": 262144, "maximum_records_per_request": 1,
+    "TLS_verification": true, "cookies": false, "auth_headers": false,
+    "environment_netrc_keyring_credential_lookup": false, "proxy_environment_lookup": false,
+    "HEAD_preflight_requests": 0, "alternate_endpoints": false, "date_fallbacks": false
+  },
+  "documented_rate_field": "percent",
+  "legacy_percentRate_field": "Synthetic regression alias only; not accepted as proof of current live schema",
+  "expected_types": ["SOFR", "TGCR", "BGCR"],
+  "publication_evidence": "No first-available proof created by this bounded schema check; historical revision/vintage and scheduled release are separate",
+  "retained_diagnostic_fields": ["rate_type", "http_status", "record_count", "observation_date", "started_at", "completed_at", "elapsed_ms", "bytes_received", "schema_validation", "unit_validation", "error_code"],
+  "forbidden_output": ["response_body", "percent", "percentRate", "percentiles", "volumeInBillions", "headers", "cookies", "response_body_hash", "exception_message", "server_error_body"],
+  "diagnostic_storage": "Only the above typed metadata may be retained locally under ignored nq_sentinel_pro/data/crs-g1-private; never committed or uploaded; delete within 7 days",
+  "response_lifetime": "Application-owned buffers only for validation; release after batch completion or error; no files, cache, database, notebook display, chat/tool output or crash/error-body logging",
+  "stop_conditions": ["approval absent or revoked", "new or changed source terms/notices or additional permission requirement", "network/TLS error or timeout", "redirect", "HTTP status other than 200", "body exceeds cap", "empty response or record count not one", "wrong rate type/date/unit", "schema differs from the reviewed contract", "allotted request/time budget exhausted", "would require credentials, alternate endpoint or persistence beyond metadata"],
+  "required_notices": [
+    {"kind": "source_copyright", "section": "Conditions, paragraph 1", "source_url": "https://www.newyorkfed.org/privacy/termsofuse", "normalized_notice_sha256": "9e9949d6e51f94901c5029be62e70cf405df6b01756fffa2f38e65fd1485e723", "application": "Preserve supplied notices; where general fallback applies complete year=2026 and retain source identity/link"},
+    {"kind": "reference_rate_attribution", "section": "Use Restrictions / Reference Rates", "source_url": "https://www.newyorkfed.org/privacy/termsofuse", "normalized_notice_sha256": "67e54c9c58a7afa63a5b2c3d7440780e1287ad407c8faa7c9d81991351586c39", "application": "Complete rate name and publisher=CRS personal internal research; present official notice to operator with any permitted data presentation; do not replace it with a summary"},
+    {"kind": "name_use_nonaffiliation", "section": "Use Restrictions / Reference Rates, product-name condition", "source_url": "https://www.newyorkfed.org/privacy/termsofuse", "normalized_notice_sha256": "e76e84b64394bbc1a6cbf0dacc7283c875c82f9bf16e782c6984ecc553520c07", "application": "When using rate name/acronym in a product description, identify CRS as unaffiliated; no NY Fed endorsement"},
+    {"kind": "upstream_dtcc", "section": "Use Restrictions / Reference Rates, SOFR and BGCR upstream data", "source_url": "https://www.newyorkfed.org/privacy/termsofuse", "normalized_notice_sha256": "935c69c1cada78cb1183d40b437a216acb30e5689233be5eee08e5f9035d9a4d", "application": "Preserve upstream source/liability statement applicable to SOFR and BGCR; no assertion of a license to DTCC underlying transaction data"}
+  ],
+  "notice_normalization": "HTML text, collapse whitespace; remove only surrounding quotation marks; hashes bind source templates before completing publisher/rate placeholders",
+  "notice_application_precondition": "Complete and verify official notices in private operator context before handling a permitted response; do not display response numbers in public logs/chat",
+  "source_evidence": {
+    "openapi_url": "https://markets.newyorkfed.org/static/docs/markets-api.yml",
+    "openapi_response_sha256": "5dbb331d86b91bfc115be9b5fe9c46735833a4f7280d33e4327e8acf7ad30d2b",
+    "openapi_captured_at": "2026-11-22T05:55:14.052419+00:00",
+    "terms_url": "https://www.newyorkfed.org/privacy/termsofuse",
+    "terms_response_sha256": "f94b131d66b80609dd192d5ce3520f1d48ab759b9e82ef7370111d2739392277",
+    "terms_captured_at": "2026-11-22T05:56:55.751766+00:00"
+  },
+  "upstream_scope": {"published_reference_rates": "Conditional NY Fed published license evidence; no activation", "underlying_DTCC_records": "UNKNOWN and excluded from this test", "additional_downstream_contract": "No separate requirement identified for these published benchmark outputs in reviewed documents; not a universal legal assurance"},
+  "approval_does_not_cover": ["G2 recurring collection", "G3 validation", "other sources", "public numerical reports", "raw-data persistence", "new credentials or fees", "main merge", "formal scoring or trading"],
+  "if_approved": "Implement/verify all controls and notices offline, then run this exact batch once only after explicit authorization; partial or failed results do not grant admission",
+  "if_rejected_or_no_answer": "No real requests; retain G1 PARTIAL/data admission NO_GO; G2/G3 NOT_STARTED; formal score N/A"
+}

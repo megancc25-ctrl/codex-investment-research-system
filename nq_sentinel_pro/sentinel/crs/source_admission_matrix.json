@@ -131,7 +131,14 @@
       "project_terms_acceptance": "NOT_GRANTED_BY_THIS_TASK",
       "live_enabled": false,
       "next_stage_eligible": false,
-      "endpoint_validation": "DOCUMENTED_ROUTE_NOT_LIVE_TESTED"
+      "endpoint_validation": "DOCUMENTED_ROUTE_NOT_LIVE_TESTED",
+      "documentary_mapping": "Official developer notice documents 2022 replacement of old feeds by current nominal/real XML routes; family mapping documented, payload equivalence untested.",
+      "robots_review": {
+        "url": "https://home.treasury.gov/robots.txt",
+        "captured_at": "2026-11-22T05:57:18.507763+00:00",
+        "sha256": "d1a6768683ed6be840be9e836e1d941677eca2bbda66cf5fa291365060b21aab",
+        "finding": "Allow / is crawl guidance, not a license or unlimited-access permission"
+      }
     },
     {
       "id": "new_york_fed",
@@ -1233,7 +1240,7 @@
       "origin_response_sha256": "5dbb331d86b91bfc115be9b5fe9c46735833a4f7280d33e4327e8acf7ad30d2b",
       "excerpt": "/api/rates/secured/{ratetype}/search.{format}:",
       "excerpt_sha256": "8f2d5f1762e7c28bdfd0ba374445c46ec167e84ece7d4e9dd0539c132a1e604c",
-      "summary": "Official Swagger specification documents secured-rate endpoints and effectiveDate, percentRate, revisionIndicator and volumeInBillions fields.",
+      "summary": "Official Swagger specification documents secured-rate endpoints and effectiveDate, percent, revisionIndicator and volumeInBillions fields.",
       "evidence_kind": "DOCUMENTATION_OR_TERMS",
       "capture_limitations": "Hash is of the HTTP response body; full copyrighted page not redistributed. Excerpt hash is independently reproducible.",
       "reviewed_at": "2026-11-22T05:42:29.110654+00:00",

@@ -104,7 +104,12 @@ def parse_payload(source_id, raw, *, decision_at, retrieved_at):
             kind = row.get("type")
             if kind not in ("SOFR", "TGCR", "BGCR") or row.get("unit", "percent") != "percent":
                 raise ValueError("Unexpected rate type or unit")
-            add(kind.lower(), row["effectiveDate"], row["percentRate"], "percent",
+            if "percent" in row and "percentRate" in row and _number(row["percent"]) != _number(row["percentRate"]):
+                raise ValueError("Conflicting documented and legacy rate fields")
+            rate_field = "percent" if "percent" in row else "percentRate"
+            add(kind.lower(), row["effectiveDate"], row[rate_field], "percent",
+                source_field=rate_field,
+                schema_status="DOCUMENTED_FIELD_MAPPING_NOT_LIVE_VERIFIED" if rate_field == "percent" else "LEGACY_SYNTHETIC_ALIAS_NOT_DOCUMENTED",
                 revision_indicator=row.get("revisionIndicator"),
                 volume=_number(row["volumeInBillions"]) if row.get("volumeInBillions") is not None else None,
                 volume_unit="billion USD")
@@ -226,7 +231,7 @@ def export_audit(directory):
         "", "## Minimal user decision",
         "| Decision | Narrow option | Safe default |",
         "|---|---|---|",
-        "| Authorize bounded live interface validation and applicable existing terms | New York Fed SOFR/TGCR/BGCR only; after implementing required notices, one bounded read-only request, memory-only, no GitHub cache or public numerical report; not G2 scheduling | Do not perform until explicitly authorized |",
+        "| Authorize the final bounded-test packet and applicable existing terms | New York Fed SOFR/TGCR/BGCR only; at most three fixed-date GET requests with required notices, memory-only, no GitHub cache or public numerical report; not G2 scheduling | Do not perform until explicitly authorized |",
         "", "There is no need to buy data, configure a FRED key, approve 19 series, contact owners, or enable G2/G3 now. Cboe/Chicago permissions and other unresolved sources remain disabled; any later request to owners must be separately authorized.",
         "", "## Unchanged FRED series",
         "RESTRICTED: "+", ".join(x["series_id"] for x in matrix["fred_series"] if x["license_status"] == "RESTRICTED"),

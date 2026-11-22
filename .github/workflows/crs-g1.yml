@@ -31,6 +31,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: crs-g1-admission-evidence
-          path: nq_sentinel_pro/reports/crs-g1/
+          path: |
+            nq_sentinel_pro/reports/crs-g1/
+            docs/G1_FINAL_DECISION_PACKET.md
+            nq_sentinel_pro/sentinel/crs/nyfed_bounded_test_plan.json
           if-no-files-found: error
           retention-days: 90
