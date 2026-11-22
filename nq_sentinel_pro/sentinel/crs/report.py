@@ -44,7 +44,7 @@ def render_markdown(report):
     score = report["score_result"]
     state = report["state_machine"]
     lines = [
-        f"# CRS 1.0 Daily Cross-Asset Risk Report  {report['asof']}", "",
+        f"# CRS Daily Cross-Asset Risk Report — {report['asof']}", "",
         f"- Pipeline status: **{report.get('pipeline_status', 'UNKNOWN')}**; score status: **{report.get('score_status', 'UNKNOWN')}**",
         f"- Score: **{score['score'] if score['score'] is not None else 'N/A'} / 100**",
         f"- Score status: **{score['status']}**",
@@ -62,7 +62,7 @@ def render_markdown(report):
         lines.append(f"| {name} | {item['weight_pct']}% | {item['score'] if item['score'] is not None else 'N/A'} | {item.get('available_metric_count', 0)} / {item.get('metric_count', 0)} | {item.get('metric_coverage_pct', 0):.1f}% | {item.get('group_coverage_pct', 0):.1f}% | {item['status']} |")
     lines += ["", "## Combination alerts", ""]
     for name, item in report.get("alerts", {}).items():
-        lines.append(f"- **{name}: {item.get('state', 'UNKNOWN')}**  {item.get('rule', item.get('note', ''))}")
+        lines.append(f"- **{name}: {item.get('state', 'UNKNOWN')}** — {item.get('rule', item.get('note', ''))}")
     lines += ["", "## Evidence supporting elevated risk", ""]
     support = report.get("evidence", {}).get("supporting", [])
     lines.extend([f"- {x}" for x in support] or ["- No elevated-risk evidence is currently confirmed from available inputs."])

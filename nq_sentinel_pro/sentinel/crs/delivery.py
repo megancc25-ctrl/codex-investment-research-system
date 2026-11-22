@@ -11,14 +11,14 @@ import math
 from pathlib import Path
 
 from .alerts import evaluate_alerts
-from .config import CONFIG_SHA256, MODULE_WEIGHTS, RULES
+from .config import CONFIG_PATH, MODULE_WEIGHTS, RULES
 from .engine import score_snapshot
 from .fred import SERIES, LICENSE_RESTRICTED
 from .market_calendar import latest_completed_xnys_session
 from .report import render_markdown
 from .runner import _evidence
 
-BASELINE_CONFIG_SHA256 = "842b929c89eab19dfcbda5ad11e0a6fc9e072fbb43b009b6b3629227f6672096"
+BASELINE_CONFIG_SHA256 = "5fa0303bab13b8b9f9a270ef043b5b9d7ddb0aa2b980858980be692c678110ad"
 BEIJING = timezone(timedelta(hours=8))
 # Freshness budgets are engineering defaults, not verified release calendars.
 SERIES_META = {
@@ -86,6 +86,8 @@ def source_matrix(asof):
             "release_calendar_status": "NOT_VERIFIED", "collection_method": "DISABLED",
             "observation_date": None, "retrieved_at": None, "last_success_observation_date": None,
             "license_status": license_status, "quality_status": "NOT_COLLECTED", "allowed_uses": [],
+            "status": "LICENSE_BLOCKED", "quality": "NOT_COLLECTED",
+            "reason": "No admitted license; no collection attempted. Review owner terms before enabling.",
             "credential_status": "NOT_INSPECTED_NOT_PROVISIONED_FOR_ENGINEERING",
             "states": classify_source(license_status=license_status),
             "missing_reason": "No admitted license; credential state not inspected. No collection attempted.",
@@ -152,7 +154,8 @@ def build_report(collection, report_date=None, generated_at=None, previous=None)
         "generated_at": generated_at, "source": "synthetic://crs-1.1/v1" if synthetic else "NO_LIVE_COLLECTION",
         "quality_status": "SYNTHETIC_NOT_MARKET_DATA" if synthetic else "NO_ADMITTED_DATA",
         "license_status": "SYNTHETIC" if synthetic else "LICENSE_BLOCKED",
-        "config_sha256": CONFIG_SHA256, "pipeline_status": "PIPELINE_SUCCESS",
+        "config_sha256": hashlib.sha256(CONFIG_PATH.read_bytes().replace(b"\r\n", b"\n")).hexdigest(),
+        "config_hash_normalization": "LF_LINE_ENDINGS", "pipeline_status": "PIPELINE_SUCCESS",
         "score_status": "FORMAL_SCORE_DISABLED", "score_result": displayed,
         "research_diagnostics": research, "alerts": alerts,
         "state_machine": {"state": "INSUFFICIENT_DATA", "label": "Formal state not approved"},

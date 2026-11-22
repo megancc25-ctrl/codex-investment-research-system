@@ -18,7 +18,7 @@ class DeliveryTests(unittest.TestCase):
     def test_seven_module_contract_unchanged(self):
         self.assertEqual(MODULE_WEIGHTS, dict(equity=15, rates=15, usd_gold=10,
             credit=20, liquidity=20, real_estate=10, contagion=10))
-        self.assertEqual(hashlib.sha256(CONFIG_PATH.read_bytes()).hexdigest(),
+        self.assertEqual(hashlib.sha256(CONFIG_PATH.read_bytes().replace(b"\r\n", b"\n")).hexdigest(),
             delivery.BASELINE_CONFIG_SHA256)
         fixture = delivery.synthetic_collection("2026-11-18")
         result = score_snapshot(fixture["features"], fixture["histories"])
