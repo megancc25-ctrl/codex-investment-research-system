@@ -1,22 +1,18 @@
 name: CRS cross-asset risk monitor
-
 on:
   workflow_dispatch:
   schedule:
-    # Weekdays after the US close. GitHub schedules use UTC.
+    # Existing schedule retained; independent of the ChatGPT 08:00 task.
     - cron: '30 23 * * 1-5'
-
 permissions:
   contents: read
-
 concurrency:
   group: crs-daily-${{ github.ref }}
   cancel-in-progress: false
-
 jobs:
   monitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: nq_sentinel_pro
@@ -25,84 +21,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - uses: actions/cache@v4
-        with:
-          path: nq_sentinel_pro/data/crs/state.json
-          key: crs-state-${{ github.ref_name }}-${{ github.run_id }}
-          restore-keys: crs-state-${{ github.ref_name }}-
-      - name: Restore and persist license-filtered FRED cache
+      - run: python -m pip install -r requirements.txt
+      - name: Existing and new offline tests
+        run: python -m unittest discover -s tests -v
+      - name: Restore engineering report archive
         uses: actions/cache@v4
         with:
-          path: nq_sentinel_pro/data/crs/fred_cache.duckdb
-          key: crs-fred-cache-${{ github.ref_name }}-${{ github.run_id }}
-          restore-keys: crs-fred-cache-${{ github.ref_name }}-
-      - uses: actions/cache@v4
-        with:
-          path: nq_sentinel_pro/data/crs/source_health.json
-          key: crs-source-health-${{ github.ref_name }}-${{ github.run_id }}
-          restore-keys: crs-source-health-${{ github.ref_name }}-
-      - name: Install dependencies
-        run: python -m pip install -r requirements.txt
-      - name: Compile and run offline tests
+          path: nq_sentinel_pro/reports/crs
+          key: crs-engineering-archive-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: crs-engineering-archive-${{ github.ref_name }}-
+      - name: Write blocked-data diagnostic (no live data or credentials)
         run: |
-          python -m compileall -q sentinel tests local_crs_portfolio.py
-          python -m unittest discover -s tests -v
-      - name: Collect data and write daily reports
-        id: monitor
-        env:
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
-        shell: bash
-        run: |
-          set +e
-          as_of="$(python -m sentinel.crs.market_calendar)"
-          calendar_result=$?
-          set -e
-          if [ "$calendar_result" -ne 0 ] || [ -z "$as_of" ]; then
-            {
-              echo "## CRS daily report"
-              echo "- Pipeline status: **PIPELINE_FAILED**"
-              echo "- Reason: latest completed XNYS session could not be resolved."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
-          set +e
-          python -m sentinel.crs.cli --as-of "$as_of"
-          result=$?
-          set -e
-          if [ "$result" -ne 0 ]; then
-            {
-              echo "## CRS daily report"
-              echo "- Pipeline status: **PIPELINE_FAILED**"
-              echo "- CLI exit code: `$result`"
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit "$result"
-          fi
-          if ! python -m sentinel.crs.actions_summary \
-            --report "reports/crs/CRS_DAILY_${as_of}.json" \
-            --summary "$GITHUB_STEP_SUMMARY"; then
-            {
-              echo "## CRS daily report"
-              echo "- Pipeline status: **PIPELINE_FAILED**"
-              echo "- Reason: report summary could not be generated."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
-      - name: Summarize pre-monitor pipeline failure
-        if: failure() && steps.monitor.outcome == 'skipped'
-        shell: bash
-        run: |
-          {
-            echo "## CRS daily report"
-            echo "- Pipeline status: **PIPELINE_FAILED**"
-            echo "- Reason: dependency installation or offline compile/tests failed before data collection."
-          } >> "$GITHUB_STEP_SUMMARY"
+          python -m sentinel.crs.delivery
+          echo 'CRS engineering diagnostic generated. Formal risk score N/A; live data not admitted.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
-        if: always() && steps.monitor.outcome != 'skipped'
         with:
-          name: crs-daily-${{ github.run_id }}
-          path: |
-            nq_sentinel_pro/reports/crs/*.json
-            nq_sentinel_pro/reports/crs/*.md
-            nq_sentinel_pro/reports/crs/*.html
-          if-no-files-found: warn
+          name: crs-engineering-diagnostic-${{ github.run_id }}
+          path: nq_sentinel_pro/reports/crs/
+          if-no-files-found: error
           retention-days: 90

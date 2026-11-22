@@ -1,0 +1,33 @@
+name: CRS 1.1 engineering acceptance
+on:
+  push:
+    branches: ['codex/crs-1.1']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: nq_sentinel_pro
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - run: python -m compileall -q sentinel tests
+      - name: Existing and new offline tests
+        run: python -m unittest discover -s tests -v
+      - name: Three-date synthetic replay
+        run: python -m sentinel.crs.delivery --replay --output reports/crs
+      - name: Repeat date without overwriting
+        run: python -m sentinel.crs.delivery --replay --output reports/crs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crs-1.1-synthetic-replay
+          path: nq_sentinel_pro/reports/crs/
+          if-no-files-found: error
+          retention-days: 90

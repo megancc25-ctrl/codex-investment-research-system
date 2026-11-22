@@ -8,10 +8,30 @@ from datetime import datetime, timezone
 def _public_copy(report):
     public = json.loads(json.dumps(report))
     details = public.get("score_result", {}).get("metric_details", {})
+    blocked = False
     for item in details.values():
-        if item.get("quality") == "LICENSE_RESTRICTED":
+        if item.get("quality") == "LICENSE_RESTRICTED" or (item.get("value") is not None and
+                item.get("license_status") not in ("APPROVED", "SYNTHETIC")):
+            blocked = True
             item["value"] = None
             item["raw_value_redacted"] = True
+            for field in ("score", "threshold_score", "percentile_score"):
+                if field in item:
+                    item[field] = None
+    if blocked:
+        score = public["score_result"]
+        score["score"] = None
+        for field in ("partial_contribution_sum_not_score", "renormalized_diagnostic_not_validated"):
+            if field in score:
+                score[field] = None
+        for module in score.get("modules", {}).values():
+            module["score"] = None
+            module["group_scores"] = {}
+        public["score_status"] = "LICENSE_BLOCKED"
+        public["alerts"] = {}
+        public["evidence"] = {"supporting": [], "against": [], "data_limits": ["Unapproved source-derived conclusions withheld."]}
+        public["state_machine"] = {"state": "INSUFFICIENT_DATA"}
+        public["decision"] = {"action": "NO_POSITION_ACTION", "rationale": "Unapproved source-derived conclusions withheld."}
     public["report_data_policy"] = {
         "raw_market_series_included": False,
         "licensed_metric_values_redacted": True,

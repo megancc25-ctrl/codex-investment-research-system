@@ -1,6 +1,6 @@
 """Minimal official FRED CSV client. Current-vintage series are not PIT histories."""
 from __future__ import annotations
-import csv, hashlib, io, json, os, time, urllib.error, urllib.parse, urllib.request
+import csv, hashlib, io, json, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timezone
 
 SERIES = {
@@ -62,11 +62,15 @@ def _read_response(request, opener, timeout):
 
 
 def fetch_series(series_key, asof, opener=None, timeout=15, retries=2, api_key=None, sleep=time.sleep):
+    # CRS 1.1 engineering delivery has no admitted live sources. An injected
+    # transport is reserved for offline contract tests, never selected by CLI.
+    if opener is None:
+        raise PermissionError("LICENSE_BLOCKED: live FRED collection is not admitted")
     if series_key not in SERIES:
         raise ValueError("FRED series key is not allowlisted")
     datetime.strptime(asof, "%Y-%m-%d")
     series_id = SERIES[series_key]
-    api_key = api_key if api_key is not None else os.environ.get("FRED_API_KEY")
+    api_key = api_key if api_key is not None else ""
     if api_key:
         params = {"series_id": series_id, "api_key": api_key, "file_type": "json",
                   "observation_end": asof, "realtime_start": asof, "realtime_end": asof,

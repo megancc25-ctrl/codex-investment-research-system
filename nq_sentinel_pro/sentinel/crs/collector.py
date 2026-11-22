@@ -72,7 +72,7 @@ def collect(asof, fred_fetcher=fetch_series, price_fetcher=fetch_prices, fred_ca
                                             "cache_authorization": item.get("cache_authorization", "NOT_APPROVED"),
                                             "raw_sha256": item["raw_sha256"]}
         except Exception as exc:
-            cache_item = (fred_cache or {}).get(key)
+            cache_item = None if isinstance(exc, PermissionError) else (fred_cache or {}).get(key)
             if cache_item:
                 cached = dict(cache_item)
                 fred[key] = cached
