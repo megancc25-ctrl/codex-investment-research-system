@@ -1,0 +1,13 @@
+{
+  "branch": "codex/frie-aswm-unified",
+  "tested_commit_sha": "97ae389f18cdcb86d85f97f6fd86d1a0e0554aa7",
+  "run_id": 45823185390,
+  "url": "https://github.com/megancc25-ctrl/codex-investment-research-system/actions/runs/45823185390",
+  "status": "completed",
+  "conclusion": "success",
+  "tests": {
+    "shared_research": 122,
+    "legacy_crs_nq": 173
+  },
+  "scope": "offline software regression only; no market model validation or production admission"
+}

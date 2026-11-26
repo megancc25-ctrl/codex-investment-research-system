@@ -54,7 +54,7 @@ GitHub Compare：CRS admission相对main ahead69/behind0，merge-base为aba33e8�
 
 当前主工作区基线215项；本轮最终数量/失败数见`test-results.txt`及最终回复。独立CRS正确工作目录重跑173项通过；首次在仓库外层调用产生17个导入错误，修正调用目录后通过，不是修改源码掩盖失败。
 
-已通过GitHub官方API核实旧CRS基线[Actions 45014326665](https://github.com/megancc25-ctrl/codex-investment-research-system/actions/runs/45014326665) completed/success，head_sha=296e7f7。这是旧CRS工程CI，不是本轮新增代码CI。新增离线workflow已准备，**本轮提交未推送，因此本轮托管CI NOT_RUN**；不能借用旧绿色灯。
+已通过GitHub官方API核实旧CRS基线[Actions 45014326665](https://github.com/megancc25-ctrl/codex-investment-research-system/actions/runs/45014326665) completed/success，head_sha=296e7f7。这是旧CRS工程CI，不是本轮新增代码CI。本轮研究包已移植至隔离分支codex/frie-aswm-unified，代码提交97ae389f18cdcb86d85f97f6fd86d1a0e0554aa7；[新CI 45823185390](https://github.com/megancc25-ctrl/codex-investment-research-system/actions/runs/45823185390) completed/success，共享研究122项、既有CRS/NQ173项均通过。没有借用旧绿色灯。详情见ci-evidence.json。
 
 UST受限运行时历史报告仍保留205项中173通过/32报错、DNS正对照无效和RUNTIME_SECURITY_VALIDATION=UNVERIFIED。没有在普通进程重跑后冒充该安全profile通过。
 
@@ -64,7 +64,10 @@ UST受限运行时历史报告仍保留205项中173通过/32报错、DNS正对�
 2. Treasury及其他源：逐用途自动访问、当前服务映射、PIT和接口验收各自独立，未准入前不启用；19个FRED不作为全部工程的前置阻塞。
 3. UST受限运行隔离/DNS/临时目录兼容：原验收问题未解决，不扩权、不绕过、不重复采集。
 4. CRS G2三次真实计划运行及G3PIT有效性未开始。模型保持NOT_VALIDATED，正式总分N/A。
-5. 当前本地分支尚未移植到远端同源checkout并跑本轮托管CI；已准备补丁/工作流，不擅自强推不相干Git历史。
+5. 主工作区仍保留自身独立Git历史，研究包已通过同源隔离工作树正常提交/推送和本轮托管CI；没有强推或合并main。
 6. 缺少真实净值、压力准备等私人参数时预算UNKNOWN，绝不推断；真实持仓和已完成减仓只保存在本地私有配置中。
 
 无需为本报告重复接受条款或批准旧请求。只有出现新的提供者证据、具体新数据用途、部署或对外联系方案时，才升级相应权限问题。当前结论保持离线研究GO、数据/模型/生产NO-GO。
+
+
+最终本地验证：主工作区269项通过/0失败；不包含既有脏V3工作的干净暂存源码211项通过/0失败；远端兼容隔离工作树共享研究122项、既有CRS/NQ173项通过。浏览器验证三问分离、UNKNOWN/BLOCKED和保存成功；CLI evaluate/modules/validate及JavaScript语法检查通过。只有synthetic_only回测工具冒烟，无真实历史有效性统计。
