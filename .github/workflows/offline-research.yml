@@ -1,0 +1,36 @@
+name: Offline research regression
+on:
+  push:
+    branches: ['codex/frie-aswm-unified']
+  workflow_dispatch:
+  pull_request:
+    paths: ['market_risk/**', 'tests/**', '.github/workflows/offline-research.yml']
+permissions:
+  contents: read
+jobs:
+  offline-tests:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Standard library regression, no source acquisition
+        run: python -m unittest discover -s tests -v
+      - name: Compile research packages
+        run: python -m compileall -q market_risk/frie market_risk/aswm
+  legacy-crs-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: nq_sentinel_pro
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Existing CRS/NQ offline regression only
+        run: python -m unittest discover -s tests -v

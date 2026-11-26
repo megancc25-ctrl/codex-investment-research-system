@@ -8,3 +8,9 @@ portfolio.private.json
 **/Obsidian/
 nq_sentinel_pro/data/
 nq_sentinel_pro/reports/
+
+# Local shared-research private input and derived output
+/data/
+/outputs/
+/output/
+.venv*/

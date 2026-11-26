@@ -1,0 +1,27 @@
+{
+  "model_version": "aswm-1.0.0",
+  "validation": "NOT_VALIDATED",
+  "production_scoring": false,
+  "auto_trading": false,
+  "count_coverage_minimum_percent": 80,
+  "candidate_thresholds": {
+    "S1": 45,
+    "S2": 65,
+    "S3": 80
+  },
+  "market_persistence_distinct_sessions": 5,
+  "financial_persistence_distinct_quarters": 2,
+  "weights": {
+    "SW01": 10,
+    "SW02": 10,
+    "SW03": 15,
+    "SW04": 10,
+    "SW05": 10,
+    "SW06": 10,
+    "SW07": 10,
+    "SW08": 10,
+    "SW09": 5,
+    "SW10": 10
+  },
+  "authority": "generated audit copy of Python registry/engine; changes require versioned research review; not a runtime override"
+}

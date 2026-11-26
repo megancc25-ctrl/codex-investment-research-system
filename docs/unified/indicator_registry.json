@@ -1,0 +1,650 @@
+{
+  "schema_version": "unified-indicators-1.0",
+  "canonical_growth_model": "ASWM-1.0",
+  "no_score_netting": true,
+  "signals": [
+    {
+      "id": "F01",
+      "name": "利好钝化",
+      "kind": "risk",
+      "module": "reaction",
+      "weight": 0,
+      "formula": "最近5次独立重大利好中非正异常收益次数",
+      "threshold": ">=3/5；采用已完成1日窗口",
+      "sources": [
+        "IR",
+        "授权行情"
+      ],
+      "frequency": "event",
+      "ttl_days": 30,
+      "dedup_group": "reaction",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F02",
+      "name": "估值透支",
+      "kind": "risk",
+      "module": "structure",
+      "weight": 0,
+      "formula": "历史估值分位与隐含增长要求联合审核",
+      "threshold": "90%–95%分位且增长要求过高；历史窗口待校准",
+      "sources": [
+        "授权估值数据库"
+      ],
+      "frequency": "daily",
+      "ttl_days": 7,
+      "dedup_group": "valuation",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F03",
+      "name": "交易拥挤",
+      "kind": "risk",
+      "module": "liquidity",
+      "weight": 0,
+      "formula": "持仓集中度及资金流历史分位",
+      "threshold": ">=90%分位；样本范围待校准",
+      "sources": [
+        "基金管理人",
+        "授权持仓数据"
+      ],
+      "frequency": "weekly",
+      "ttl_days": 14,
+      "dedup_group": "leverage",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F04",
+      "name": "低波动高杠杆",
+      "kind": "risk",
+      "module": "liquidity",
+      "weight": 0,
+      "formula": "波动率分位<20%且杠杆分位>90%",
+      "threshold": "联合条件；分位窗口待校准",
+      "sources": [
+        "Cboe",
+        "FINRA"
+      ],
+      "frequency": "monthly",
+      "ttl_days": 45,
+      "dedup_group": "leverage",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F05",
+      "name": "利率敏感度恶化",
+      "kind": "risk",
+      "module": "reaction",
+      "weight": 0,
+      "formula": "科技股收益对实际利率变化OLS斜率的窗口差",
+      "threshold": "显著负向增强；窗口与显著性研究参数",
+      "sources": [
+        "授权行情",
+        "FRED"
+      ],
+      "frequency": "daily",
+      "ttl_days": 7,
+      "dedup_group": "rates",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F06",
+      "name": "自由现金流恶化",
+      "kind": "risk",
+      "module": "capex",
+      "weight": 0,
+      "formula": "同口径FCF同比下降连续两季的云厂商数量",
+      "threshold": ">=2家；FCF=经营现金流−现金CapEx",
+      "sources": [
+        "SEC EDGAR",
+        "IR"
+      ],
+      "frequency": "quarterly",
+      "ttl_days": 120,
+      "dedup_group": "capex_financing",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F07",
+      "name": "外部融资依赖",
+      "kind": "risk",
+      "module": "capex",
+      "weight": 0,
+      "formula": "CapEx/经营现金流上升且净债务增长",
+      "threshold": "联合审核；经营现金流<=0单独标记",
+      "sources": [
+        "SEC EDGAR",
+        "IR"
+      ],
+      "frequency": "quarterly",
+      "ttl_days": 120,
+      "dedup_group": "capex_financing",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F08",
+      "name": "信用风险扩大",
+      "kind": "risk",
+      "module": "credit",
+      "weight": 0,
+      "formula": "HY OAS水平或20交易日变化，单位bp",
+      "threshold": ">400bp 或20日扩大>=100bp",
+      "sources": [
+        "获准FRED信用源",
+        "授权信用数据库"
+      ],
+      "frequency": "daily",
+      "ttl_days": 7,
+      "dedup_group": "credit_spread",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F09",
+      "name": "循环融资风险",
+      "kind": "risk",
+      "module": "capex",
+      "weight": 0,
+      "formula": "应收账款/担保/供应商融资/交叉投资事件审核",
+      "threshold": "异常与独立终端需求缺失需原始披露确认",
+      "sources": [
+        "SEC EDGAR",
+        "IR"
+      ],
+      "frequency": "event",
+      "ttl_days": 120,
+      "dedup_group": "circular_financing",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F10",
+      "name": "硬件产业成熟",
+      "kind": "risk",
+      "module": "industry",
+      "weight": 0,
+      "formula": "订单/毛利率/售价多项恶化联合审核",
+      "threshold": "多项条件；可比口径和数值阈值待校准",
+      "sources": [
+        "IR",
+        "授权产业数据库"
+      ],
+      "frequency": "quarterly",
+      "ttl_days": 120,
+      "dedup_group": "hardware_cycle",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F11",
+      "name": "AI商业化遇阻",
+      "kind": "risk",
+      "module": "industry",
+      "weight": 0,
+      "formula": "付费增长不足及单位经济性恶化",
+      "threshold": "收入/续费/利润证据联合审核",
+      "sources": [
+        "SEC EDGAR",
+        "IR"
+      ],
+      "frequency": "quarterly",
+      "ttl_days": 120,
+      "dedup_group": "commercialization",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F12",
+      "name": "龙头滞涨及题材扩散",
+      "kind": "risk",
+      "module": "reaction",
+      "weight": 0,
+      "formula": "龙头相对收益弱+广度差+边缘题材上涨",
+      "threshold": "三条件联合审核；窗口待校准",
+      "sources": [
+        "授权行情",
+        "授权广度数据"
+      ],
+      "frequency": "daily",
+      "ttl_days": 7,
+      "dedup_group": "reaction",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F13",
+      "name": "盈利预测提前下修",
+      "kind": "risk",
+      "module": "structure",
+      "weight": 0,
+      "formula": "Forward EPS/修正广度/指引变化",
+      "threshold": "当时可得预期连续下修；阈值待校准",
+      "sources": [
+        "授权一致预期数据库",
+        "IR"
+      ],
+      "frequency": "daily",
+      "ttl_days": 7,
+      "dedup_group": "earnings",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F14",
+      "name": "市场流动性恶化",
+      "kind": "risk",
+      "module": "liquidity",
+      "weight": 0,
+      "formula": "价差/深度/冲击成本恶化",
+      "threshold": "统一时段同口径审核；阈值待校准",
+      "sources": [
+        "授权盘口数据"
+      ],
+      "frequency": "daily",
+      "ttl_days": 2,
+      "dedup_group": "market_liquidity",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F15",
+      "name": "波动率期限结构倒挂",
+      "kind": "risk",
+      "module": "credit",
+      "weight": 0,
+      "formula": "VIX/VIX3M及VXN/偏度联合审核",
+      "threshold": "倒挂持续时间待校准；不凭单点自动触发",
+      "sources": [
+        "Cboe"
+      ],
+      "frequency": "daily",
+      "ttl_days": 2,
+      "dedup_group": "volatility",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F16",
+      "name": "跨资产风险共振",
+      "kind": "risk",
+      "module": "credit",
+      "weight": 0,
+      "formula": "股债信用黄金美元异常联动",
+      "threshold": "独立资产与融资证据联合；阈值待校准",
+      "sources": [
+        "授权行情",
+        "授权信用数据"
+      ],
+      "frequency": "daily",
+      "ttl_days": 7,
+      "dedup_group": "contagion",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F17",
+      "name": "全球美元融资压力",
+      "kind": "risk",
+      "module": "credit",
+      "weight": 0,
+      "formula": "SOFR−IORB/回购/美元融资/套利平仓审核",
+      "threshold": "期限及基点同口径；阈值待校准",
+      "sources": [
+        "NY Fed",
+        "Federal Reserve"
+      ],
+      "frequency": "daily",
+      "ttl_days": 7,
+      "dedup_group": "dollar_funding",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "F18",
+      "name": "指数内部结构恶化",
+      "kind": "risk",
+      "module": "structure",
+      "weight": 0,
+      "formula": "50/200日均线上占比/新高新低/等权相对收益",
+      "threshold": "点时成分股联合审核；阈值待校准",
+      "sources": [
+        "授权点时成分与行情"
+      ],
+      "frequency": "daily",
+      "ttl_days": 7,
+      "dedup_group": "breadth",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "frie-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_frie_engine.py::EngineTests.test_registry_complete"
+    },
+    {
+      "id": "SW01",
+      "name": "AI重大商业化突破",
+      "kind": "opportunity",
+      "module": "commercial",
+      "weight": 10,
+      "formula": "真实付费商业模式的重大突破，不能只用下载/Token",
+      "threshold": "CANDIDATE_UNVALIDATED：见facts与阶段约束",
+      "sources": [
+        "SEC/IR",
+        "获准行业行情/预期/信用源"
+      ],
+      "frequency": "event",
+      "ttl_days": 30,
+      "dedup_group": "aswm_1",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "aswm-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_aswm_signals.py"
+    },
+    {
+      "id": "SW02",
+      "name": "企业真实付费、续费及ROI",
+      "kind": "opportunity",
+      "module": "commercial",
+      "weight": 10,
+      "formula": "至少两家独立企业同口径付费/续费/ROI改善",
+      "threshold": "CANDIDATE_UNVALIDATED：见facts与阶段约束",
+      "sources": [
+        "SEC/IR",
+        "获准行业行情/预期/信用源"
+      ],
+      "frequency": "quarterly",
+      "ttl_days": 120,
+      "dedup_group": "aswm_2",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "aswm-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_aswm_signals.py"
+    },
+    {
+      "id": "SW03",
+      "name": "AI应用收入与单位经济性",
+      "kind": "opportunity",
+      "module": "commercial",
+      "weight": 15,
+      "formula": "AI专属收入及贡献经济性改善，持续性需两季度",
+      "threshold": "CANDIDATE_UNVALIDATED：见facts与阶段约束",
+      "sources": [
+        "SEC/IR",
+        "获准行业行情/预期/信用源"
+      ],
+      "frequency": "quarterly",
+      "ttl_days": 120,
+      "dedup_group": "aswm_3",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "aswm-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_aswm_signals.py"
+    },
+    {
+      "id": "SW04",
+      "name": "推理算力实际需求",
+      "kind": "opportunity",
+      "module": "transmission",
+      "weight": 10,
+      "formula": "工作负载调整实际推理需求增长；硬件订单另核",
+      "threshold": "CANDIDATE_UNVALIDATED：见facts与阶段约束",
+      "sources": [
+        "SEC/IR",
+        "获准行业行情/预期/信用源"
+      ],
+      "frequency": "quarterly",
+      "ttl_days": 120,
+      "dedup_group": "aswm_4",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "aswm-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_aswm_signals.py"
+    },
+    {
+      "id": "SW05",
+      "name": "云巨头现金流与投资回报",
+      "kind": "opportunity",
+      "module": "capital",
+      "weight": 10,
+      "formula": "OCF驱动FCF改善，区分削减CapEx，ROIC另核",
+      "threshold": "CANDIDATE_UNVALIDATED：见facts与阶段约束",
+      "sources": [
+        "SEC/IR",
+        "获准行业行情/预期/信用源"
+      ],
+      "frequency": "quarterly",
+      "ttl_days": 120,
+      "dedup_group": "aswm_5",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "aswm-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_aswm_signals.py"
+    },
+    {
+      "id": "SW06",
+      "name": "真实订单驱动第二轮CapEx",
+      "kind": "opportunity",
+      "module": "transmission",
+      "weight": 10,
+      "formula": "独立外部订单转换与利用率；循环融资不可替代",
+      "threshold": "CANDIDATE_UNVALIDATED：见facts与阶段约束",
+      "sources": [
+        "SEC/IR",
+        "获准行业行情/预期/信用源"
+      ],
+      "frequency": "event",
+      "ttl_days": 120,
+      "dedup_group": "aswm_6",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "aswm-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_aswm_signals.py"
+    },
+    {
+      "id": "SW07",
+      "name": "科技企业信用风险改善",
+      "kind": "opportunity",
+      "module": "credit",
+      "weight": 10,
+      "formula": "同评级同期限科技利差稳定/20日收窄；HY代理不替代",
+      "threshold": "CANDIDATE_UNVALIDATED：见facts与阶段约束",
+      "sources": [
+        "SEC/IR",
+        "获准行业行情/预期/信用源"
+      ],
+      "frequency": "daily",
+      "ttl_days": 7,
+      "dedup_group": "aswm_7",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "aswm-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_aswm_signals.py"
+    },
+    {
+      "id": "SW08",
+      "name": "市场信息反应逆转",
+      "kind": "opportunity",
+      "module": "reaction",
+      "weight": 10,
+      "formula": "最近5次独立利好1日行业调整收益>=3正且中位数>0",
+      "threshold": "CANDIDATE_UNVALIDATED：见facts与阶段约束",
+      "sources": [
+        "SEC/IR",
+        "获准行业行情/预期/信用源"
+      ],
+      "frequency": "event",
+      "ttl_days": 30,
+      "dedup_group": "aswm_8",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "aswm-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_aswm_signals.py"
+    },
+    {
+      "id": "SW09",
+      "name": "软件与半导体市场趋势",
+      "kind": "opportunity",
+      "module": "reaction",
+      "weight": 5,
+      "formula": "SOX连续10日未新创20日低点；50DMA上5日、SOX/NDX和广度",
+      "threshold": "CANDIDATE_UNVALIDATED：见facts与阶段约束",
+      "sources": [
+        "SEC/IR",
+        "获准行业行情/预期/信用源"
+      ],
+      "frequency": "daily",
+      "ttl_days": 7,
+      "dedup_group": "aswm_9",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "aswm-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_aswm_signals.py"
+    },
+    {
+      "id": "SW10",
+      "name": "半导体盈利预测与利润",
+      "kind": "opportunity",
+      "module": "transmission",
+      "weight": 10,
+      "formula": "半导体EPS修正企稳/上调，订单与毛利共同改善",
+      "threshold": "CANDIDATE_UNVALIDATED：见facts与阶段约束",
+      "sources": [
+        "SEC/IR",
+        "获准行业行情/预期/信用源"
+      ],
+      "frequency": "quarterly",
+      "ttl_days": 120,
+      "dedup_group": "aswm_10",
+      "unit": "reviewed_state",
+      "license_status": "UNKNOWN_REQUIRES_ADMISSION",
+      "version": "aswm-1.0.0",
+      "missing": "UNKNOWN_NO_VOTE",
+      "test_case": "tests/test_aswm_signals.py"
+    }
+  ],
+  "legacy_opportunity_aliases": {
+    "O01": {
+      "related_sw": "SW01",
+      "automatic_migration": false,
+      "reason": "new semantics and stage evidence must be reassessed"
+    },
+    "O02": {
+      "related_sw": "SW02",
+      "automatic_migration": false,
+      "reason": "new semantics and stage evidence must be reassessed"
+    },
+    "O03": {
+      "related_sw": "SW03",
+      "automatic_migration": false,
+      "reason": "new semantics and stage evidence must be reassessed"
+    },
+    "O04": {
+      "related_sw": "SW04",
+      "automatic_migration": false,
+      "reason": "new semantics and stage evidence must be reassessed"
+    },
+    "O05": {
+      "related_sw": "SW05",
+      "automatic_migration": false,
+      "reason": "new semantics and stage evidence must be reassessed"
+    },
+    "O06": {
+      "related_sw": "SW06",
+      "automatic_migration": false,
+      "reason": "new semantics and stage evidence must be reassessed"
+    },
+    "O07": {
+      "related_sw": "SW07",
+      "automatic_migration": false,
+      "reason": "new semantics and stage evidence must be reassessed"
+    },
+    "O08": {
+      "related_sw": "SW08",
+      "automatic_migration": false,
+      "reason": "new semantics and stage evidence must be reassessed"
+    },
+    "O09": {
+      "related_sw": "SW09",
+      "automatic_migration": false,
+      "reason": "new semantics and stage evidence must be reassessed"
+    },
+    "O10": {
+      "related_sw": "SW10",
+      "automatic_migration": false,
+      "reason": "new semantics and stage evidence must be reassessed"
+    }
+  },
+  "ust_shared_sources": {
+    "DGS10": "Treasury10Y shared with F05",
+    "DGS30": "Treasury30Y shared with UST",
+    "SOFR/IORB": "existing CRS/UST definitions; no second collector",
+    "HY_OAS": "restricted; one economic event, not CDS/CDX"
+  },
+  "production_scoring": false
+}

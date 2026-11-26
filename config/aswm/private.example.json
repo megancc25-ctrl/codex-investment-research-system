@@ -1,0 +1,23 @@
+{
+  "schema_version": "aswm-private-1.0",
+  "confirmed_at": null,
+  "expires_at": null,
+  "budget_scope": null,
+  "portfolio": {
+    "semiconductor_weight": null,
+    "cash_weight": null,
+    "account_nav": null,
+    "currency": null,
+    "leverage": false,
+    "completed_reductions": []
+  },
+  "risk_budget": {
+    "remaining_loss_budget": null,
+    "semiconductor_stress_loss": null,
+    "other_assets_loss": null,
+    "fx_loss": null,
+    "fees_loss": null,
+    "uncertainty_buffer": null,
+    "liquidity_limit": null
+  }
+}
