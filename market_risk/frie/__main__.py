@@ -19,6 +19,7 @@ def main():
     validation=sub.add_parser('validate');validation.add_argument('--input',required=True);validation.add_argument('--output',default='outputs/frie/validation.json')
     mrm=sub.add_parser('mrm');mrm.add_argument('--input',required=True);mrm.add_argument('--db',default='data/frie/research.sqlite');mrm.add_argument('--output',default='outputs/frie/mrm.json')
     indicator=sub.add_parser('indicator');indicator.add_argument('--id',required=True);indicator.add_argument('--input',required=True)
+    lcim_pit=sub.add_parser('lcim-pit');lcim_pit.add_argument('--input',required=True);lcim_pit.add_argument('--output',default='outputs/lcim-pit')
     lcim=sub.add_parser('lcim');lcim.add_argument('--input',required=True);lcim.add_argument('--output',default='outputs/lcim/report.json')
     modules=sub.add_parser('modules');modules.add_argument('--input',required=True);modules.add_argument('--output',default='outputs/unified')
     args=parser.parse_args()
@@ -50,6 +51,14 @@ def main():
         if args.id not in names: parser.error('indicator requires reviewed qualitative evidence or MRM; no numeric rule configured')
         body=strict_json(Path(args.input).read_text(encoding='utf-8-sig'))
         print(json.dumps(getattr(indicators,names[args.id])(**body),ensure_ascii=False,allow_nan=False))
+    elif args.command=='lcim-pit':
+        from .lcim_pit import make_report, markdown
+        body=strict_json(Path(args.input).read_text(encoding='utf-8-sig'))
+        report=make_report(body,validate_request({'as_of':body.get('as_of')}))
+        target=Path(args.output);target.mkdir(parents=True,exist_ok=True)
+        (target/'lcim.json').write_text(json.dumps(report,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
+        (target/'lcim.md').write_text(markdown(report),encoding='utf-8')
+        print(json.dumps({'output':str(target.resolve()),'coverage':report['coverage'],'model_status':'NOT_VALIDATED'}))
     elif args.command=='lcim':
         from .lcim import evaluate_envelope
         body=strict_json(Path(args.input).read_text(encoding='utf-8-sig'))
